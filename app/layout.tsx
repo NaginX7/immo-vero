@@ -10,6 +10,10 @@ const geistSans = localFont({
 });
 
 export const metadata: Metadata = {
+  // Outil de gestion interne : aucune page ne doit apparaître dans les moteurs
+  // de recherche. S'applique à toutes les pages, y compris /rdv et les liens de
+  // confirmation de rendez-vous.
+  robots: { index: false, follow: false, nocache: true },
   title: "Giorgio Immo — L'Immobilière de Saverne",
   description: "CRM métier pour mandataire immobilière indépendante",
 };
