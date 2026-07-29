@@ -18,7 +18,12 @@ const COOKIE_NAME = "giorgio_session";
 /** Routes accessibles sans authentification (prise de RDV publique + login). */
 const PUBLIC_PREFIXES = ["/rdv", "/login"];
 
+/** Fichiers statiques servis depuis /public (photo, polices…). */
+const STATIC_FILE =
+  /\.(?:jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf|css|js|map|txt|xml)$/i;
+
 function isPublic(pathname: string): boolean {
+  if (STATIC_FILE.test(pathname)) return true;
   return PUBLIC_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
@@ -62,37 +67,46 @@ async function verifySession(
   return diff === 0;
 }
 
+function redirectToLogin(req: NextRequest, search: string) {
+  const url = req.nextUrl.clone();
+  url.pathname = "/login";
+  url.search = search;
+  return NextResponse.redirect(url);
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (isPublic(pathname)) return NextResponse.next();
 
-  const password = process.env.APP_PASSWORD ?? "";
+  try {
+    const password = process.env.APP_PASSWORD ?? "";
 
-  // Aucun mot de passe défini :
-  //  - en développement local → accès direct (confort)
-  //  - en production → accès BLOQUÉ, on n'expose jamais les données par défaut
-  if (password === "") {
-    if (process.env.NODE_ENV !== "production") return NextResponse.next();
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "?config=manquante";
-    return NextResponse.redirect(url);
+    // Aucun mot de passe défini :
+    //  - en développement local → accès direct (confort)
+    //  - en production → accès BLOQUÉ, on n'expose jamais les données par défaut
+    if (password === "") {
+      if (process.env.NODE_ENV !== "production") return NextResponse.next();
+      return redirectToLogin(req, "?config=manquante");
+    }
+
+    const secret = process.env.AUTH_SECRET || password;
+    const ok = await verifySession(req.cookies.get(COOKIE_NAME)?.value, secret);
+    if (ok) return NextResponse.next();
+
+    return redirectToLogin(
+      req,
+      pathname === "/" ? "" : `?from=${encodeURIComponent(pathname)}`
+    );
+  } catch {
+    // En cas d'imprévu, on refuse l'accès (fail closed) plutôt que de renvoyer
+    // une erreur 500 : le site reste utilisable et les données protégées.
+    return redirectToLogin(req, "?erreur=session");
   }
-
-  const secret = process.env.AUTH_SECRET || password;
-  const ok = await verifySession(req.cookies.get(COOKIE_NAME)?.value, secret);
-  if (ok) return NextResponse.next();
-
-  const url = req.nextUrl.clone();
-  url.pathname = "/login";
-  url.search = pathname === "/" ? "" : `?from=${encodeURIComponent(pathname)}`;
-  return NextResponse.redirect(url);
 }
 
 export const config = {
-  // Assets statiques et optimiseur d'images exclus.
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|png|svg|webp|ico|woff|woff2)$).*)",
-  ],
+  // Motif standard Next.js : on exclut uniquement les internes du framework.
+  // Les fichiers statiques sont écartés dans le code (voir STATIC_FILE).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
