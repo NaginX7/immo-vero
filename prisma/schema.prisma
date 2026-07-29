@@ -390,6 +390,20 @@ model CalendarSettings {
   titrePublic     String   @default("Calendrier de Véronique Noureddine, votre partenaire immobilier en Alsace")
   messagePublic   String? // texte d'accueil sur la page publique
   actif           Boolean  @default(true) // false = réservations suspendues
+  /// Jeton secret du flux ICS d'abonnement (export vers Google Agenda)
+  icsToken        String?  @unique
+}
+
+/// Agenda externe (Google Agenda…) dont les événements bloquent les créneaux.
+model ExternalCalendar {
+  id         String    @id @default(cuid())
+  createdAt  DateTime  @default(now())
+  nom        String // libellé libre, ex: "Agenda personnel"
+  url        String // adresse secrète au format iCal
+  actif      Boolean   @default(true)
+  lastSyncAt DateTime?
+  lastError  String? // message de la dernière erreur de récupération
+  nbEvenements Int     @default(0) // nombre d'occupations lues au dernier appel
 }
 
 /// Plage horaire récurrente d'ouverture (ex: lundi 09:00-12:00)

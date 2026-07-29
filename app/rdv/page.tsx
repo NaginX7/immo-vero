@@ -2,7 +2,10 @@ import Image from "next/image";
 import type { Metadata } from "next";
 
 import { prisma } from "@/lib/prisma";
-import { getCalendarSettings } from "@/lib/calendar-actions";
+import {
+  getCalendarSettings,
+  getBusyFromExternalCalendars,
+} from "@/lib/calendar-actions";
 import { generateSlots } from "@/lib/slots";
 import { BookingForm, type PublicSlot } from "@/components/rdv/booking-form";
 
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
 export default async function RdvPublicPage() {
   const settings = await getCalendarSettings();
 
-  const [rules, closures, bookings] = await Promise.all([
+  const [rules, closures, bookings, busyExterne] = await Promise.all([
     prisma.availabilityRule.findMany(),
     prisma.slotClosure.findMany({ where: { fin: { gte: new Date() } } }),
     prisma.booking.findMany({
@@ -27,13 +30,15 @@ export default async function RdvPublicPage() {
       },
       select: { debut: true, fin: true },
     }),
+    // Occupations issues des agendas externes (Google Agenda…)
+    getBusyFromExternalCalendars(settings.horizonJours),
   ]);
 
   const slots: PublicSlot[] = settings.actif
     ? generateSlots({
         rules,
         closures,
-        busy: bookings,
+        busy: [...bookings, ...busyExterne],
         settings: {
           dureeCreneauMin: settings.dureeCreneauMin,
           preavisHeures: settings.preavisHeures,

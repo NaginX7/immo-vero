@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { generateSlots, parseHHMM } from "@/lib/slots";
+import { lireAgendaExterne, normaliserUrlIcal } from "@/lib/ical";
 import type { BookingReason } from "@prisma/client";
 import { requireAuth } from "@/lib/auth-guard";
 
@@ -108,6 +109,166 @@ export async function getCalendarSettings() {
   });
   if (existing) return existing;
   return prisma.calendarSettings.create({ data: { id: SETTINGS_ID } });
+}
+
+// --- Synchronisation iCal -------------------------------------------------
+
+/** Jeton du flux d'abonnement, créé au premier accès. */
+export async function getIcsToken(): Promise<string> {
+  await requireAuth();
+  const settings = await getCalendarSettings();
+  if (settings.icsToken) return settings.icsToken;
+
+  const token = randomBytes(24).toString("base64url");
+  await prisma.calendarSettings.update({
+    where: { id: SETTINGS_ID },
+    data: { icsToken: token },
+  });
+  return token;
+}
+
+/** Régénère le jeton : l'ancien lien d'abonnement cesse aussitôt de fonctionner. */
+export async function regenerateIcsToken(): Promise<string> {
+  await requireAuth();
+  const token = randomBytes(24).toString("base64url");
+  await prisma.calendarSettings.update({
+    where: { id: SETTINGS_ID },
+    data: { icsToken: token },
+  });
+  revalidatePath("/calendrier");
+  return token;
+}
+
+/** URL complète du flux d'abonnement. */
+export async function getIcsUrl(): Promise<string> {
+  await requireAuth();
+  const token = await getIcsToken();
+  return `${getBaseUrl()}/api/ical?token=${token}`;
+}
+
+export async function addExternalCalendar(
+  fd: FormData
+): Promise<{ ok: boolean; error?: string }> {
+  await requireAuth();
+  const nom = String(fd.get("nom") ?? "").trim() || "Agenda externe";
+  const urlBrute = String(fd.get("url") ?? "").trim();
+
+  if (urlBrute === "") {
+    return { ok: false, error: "Adresse du calendrier manquante." };
+  }
+
+  const url = normaliserUrlIcal(urlBrute);
+  if (!/^https?:\/\//i.test(url)) {
+    return {
+      ok: false,
+      error: "L'adresse doit commencer par https:// ou webcal://",
+    };
+  }
+
+  // On valide tout de suite : mieux vaut refuser une adresse erronée que
+  // découvrir plus tard que les créneaux ne sont pas bloqués.
+  const debut = new Date();
+  const fin = new Date();
+  fin.setDate(fin.getDate() + 60);
+  const lecture = await lireAgendaExterne(url, debut, fin, { cacheSeconds: 0 });
+  if (lecture.erreur) {
+    return { ok: false, error: lecture.erreur };
+  }
+
+  await prisma.externalCalendar.create({
+    data: {
+      nom,
+      url,
+      lastSyncAt: new Date(),
+      nbEvenements: lecture.occupations.length,
+    },
+  });
+
+  revalidatePath("/calendrier");
+  revalidatePath("/rdv");
+  return { ok: true };
+}
+
+export async function deleteExternalCalendar(id: string) {
+  await requireAuth();
+  await prisma.externalCalendar.delete({ where: { id } });
+  revalidatePath("/calendrier");
+  revalidatePath("/rdv");
+}
+
+export async function toggleExternalCalendar(id: string, actif: boolean) {
+  await requireAuth();
+  await prisma.externalCalendar.update({ where: { id }, data: { actif } });
+  revalidatePath("/calendrier");
+  revalidatePath("/rdv");
+}
+
+/** Relit tous les agendas externes et met à jour leur état de synchronisation. */
+export async function syncExternalCalendars(): Promise<{
+  ok: boolean;
+  total: number;
+}> {
+  await requireAuth();
+  const agendas = await prisma.externalCalendar.findMany({
+    where: { actif: true },
+  });
+
+  const debut = new Date();
+  const fin = new Date();
+  fin.setDate(fin.getDate() + 90);
+
+  let total = 0;
+  for (const a of agendas) {
+    const lecture = await lireAgendaExterne(a.url, debut, fin, {
+      cacheSeconds: 0,
+    });
+    total += lecture.occupations.length;
+    await prisma.externalCalendar.update({
+      where: { id: a.id },
+      data: {
+        lastSyncAt: new Date(),
+        lastError: lecture.erreur ?? null,
+        nbEvenements: lecture.occupations.length,
+      },
+    });
+  }
+
+  revalidatePath("/calendrier");
+  revalidatePath("/rdv");
+  return { ok: true, total };
+}
+
+/**
+ * Périodes occupées issues des agendas externes.
+ *
+ * Utilisée par la page publique et par la validation d'une réservation. Un
+ * agenda injoignable est ignoré : mieux vaut proposer un créneau en trop que
+ * rendre la prise de rendez-vous impossible.
+ */
+export async function getBusyFromExternalCalendars(
+  horizonJours: number,
+  opts: { fresh?: boolean } = {}
+): Promise<{ debut: Date; fin: Date }[]> {
+  const agendas = await prisma.externalCalendar.findMany({
+    where: { actif: true },
+    select: { url: true },
+  });
+  if (agendas.length === 0) return [];
+
+  const debut = new Date();
+  const fin = new Date();
+  fin.setDate(fin.getDate() + horizonJours + 1);
+
+  const lectures = await Promise.all(
+    agendas.map((a) =>
+      lireAgendaExterne(a.url, debut, fin, {
+        // À la réservation on relit sans cache pour éviter tout doublon.
+        cacheSeconds: opts.fresh ? 0 : 300,
+      })
+    )
+  );
+
+  return lectures.flatMap((l) => l.occupations);
 }
 
 // --- Réglages -------------------------------------------------------------
@@ -392,8 +553,10 @@ export async function bookSlot(input: {
     return { ok: false, error: "Les réservations sont momentanément fermées." };
   }
 
-  // Revalide le créneau côté serveur (anti double-réservation / triche)
-  const [rules, closures, busy] = await Promise.all([
+  // Revalide le créneau côté serveur (anti double-réservation / triche).
+  // Les agendas externes sont relus sans cache : entre l'affichage de la page
+  // et la validation, un événement a pu être ajouté dans Google Agenda.
+  const [rules, closures, busy, busyExterne] = await Promise.all([
     prisma.availabilityRule.findMany(),
     prisma.slotClosure.findMany(),
     prisma.booking.findMany({
@@ -403,12 +566,13 @@ export async function bookSlot(input: {
       },
       select: { debut: true, fin: true },
     }),
+    getBusyFromExternalCalendars(settings.horizonJours, { fresh: true }),
   ]);
 
   const slots = generateSlots({
     rules,
     closures,
-    busy,
+    busy: [...busy, ...busyExterne],
     settings: {
       dureeCreneauMin: settings.dureeCreneauMin,
       preavisHeures: settings.preavisHeures,

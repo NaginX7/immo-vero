@@ -1,14 +1,26 @@
 import Link from "next/link";
-import { CalendarClock, Link2, Settings2, UserPlus } from "lucide-react";
+import {
+  CalendarClock,
+  Link2,
+  Settings2,
+  UserPlus,
+  CalendarSync,
+} from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
-import { getCalendarSettings, cancelBooking } from "@/lib/calendar-actions";
+import {
+  getCalendarSettings,
+  cancelBooking,
+  getIcsUrl,
+} from "@/lib/calendar-actions";
 import { generateSlots } from "@/lib/slots";
+import { MOTIF_LABELS } from "@/lib/calendar-labels";
 import { formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { AvailabilityEditor } from "@/components/calendrier/availability-editor";
 import { ClosuresEditor } from "@/components/calendrier/closures-editor";
 import { SettingsForm } from "@/components/calendrier/settings-form";
+import { SyncGoogle } from "@/components/calendrier/sync-google";
 import { PublicLink } from "@/components/calendrier/public-link";
 import { DeleteButton } from "@/components/delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +30,6 @@ import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
-const MOTIF_LABELS: Record<string, string> = {
-  ESTIMATION: "Estimation",
-  VISITE: "Visite",
-  CONSEIL: "Conseil",
-  AUTRE: "Rendez-vous",
-};
 
 export default async function CalendrierPage() {
   await requireAuth();
@@ -44,6 +50,11 @@ export default async function CalendrierPage() {
       orderBy: { debut: "asc" },
       include: { contact: true },
     }),
+  ]);
+
+  const [icsUrl, agendasExternes] = await Promise.all([
+    getIcsUrl(),
+    prisma.externalCalendar.findMany({ orderBy: { createdAt: "asc" } }),
   ]);
 
   const busy = bookings.map((b) => ({ debut: b.debut, fin: b.fin }));
@@ -181,6 +192,19 @@ export default async function CalendrierPage() {
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Synchronisation Google Agenda */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CalendarSync className="h-4 w-4 text-coral-500" />
+                Synchronisation avec Google Agenda
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SyncGoogle icsUrl={icsUrl} agendas={agendasExternes} />
             </CardContent>
           </Card>
         </div>
