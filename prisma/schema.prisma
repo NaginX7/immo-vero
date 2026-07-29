@@ -1,0 +1,445 @@
+// Schéma Prisma — CRM Giorgio Immo (L'Immobilière de Saverne)
+// Base : Neon (Postgres serverless). Renseigner DATABASE_URL dans .env
+//
+// Choix de modélisation notables (v0) :
+//  - Un Contact peut cumuler plusieurs rôles (vendeur ET acquéreur) -> tableau `roles`.
+//  - La « timeline » d'un dossier est portée par deux modèles complémentaires :
+//      * Evenement  = faits datés structurés (RDV, visite, offre, mandat, compromis...)
+//      * Echange    = communications (mail / SMS / appel / note interne)
+//    Les deux peuvent pointer vers un Bien et/ou un Contact.
+//  - La checklist documentaire (TRACFIN inclus) est une liste de Document rattachés
+//    au Bien et/ou au Contact, chacun avec un statut reçu / manquant.
+//  - Champs Brevo (statutEnvoi, template utilisé) présents mais NON connectés en v0.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------------
+
+/// Étapes réelles du pipeline de vente (colonnes du Kanban)
+enum PipelineStage {
+  PROSPECTION
+  R1_DECOUVERTE
+  BACK_OFFICE
+  R2_ESTIMATION
+  MANDAT_SIGNE
+  COMMERCIALISATION
+  VISITE_PLANIFIEE
+  OFFRE_EN_COURS
+  COMPROMIS
+  VENTE_DEFINITIVE
+}
+
+/// Rôle d'un contact (cumulable)
+enum ContactRole {
+  VENDEUR
+  ACQUEREUR
+  APPORTEUR
+}
+
+enum EstimationReason {
+  VENTE
+  SUCCESSION
+  DIVORCE
+  MUTATION
+  INVESTISSEMENT
+  AUTRE
+}
+
+enum PartenaireType {
+  DIAGNOSTIQUEUR
+  NOTAIRE
+  COURTIER
+  ARTISAN
+  GEOMETRE
+  BANQUE
+  AUTRE
+}
+
+enum EventType {
+  RDV
+  VISITE
+  ESTIMATION
+  OFFRE
+  MANDAT
+  COMPROMIS
+  SIGNATURE
+  APPORT_AFFAIRE
+  RECOMMANDATION
+  AUTRE
+}
+
+enum ExchangeType {
+  EMAIL
+  SMS
+  APPEL
+  NOTE
+}
+
+/// Statut d'envoi (préparation Brevo — non utilisé en v0)
+enum SendStatus {
+  NON_ENVOYE
+  ENVOYE
+  ECHEC
+}
+
+enum DocStatus {
+  MANQUANT
+  RECU
+  NON_APPLICABLE
+}
+
+/// Types de documents de la checklist bien + pièces TRACFIN + copropriété
+enum DocType {
+  // Checklist bien
+  PEC_VENDEUR
+  TITRE_PROPRIETE
+  TAXE_FONCIERE
+  DIAG_IMMO
+  SDEA
+  FACTURES_TRAVAUX
+  PERMIS_CONSTRUIRE
+  DP // Déclaration préalable
+  DACT // Déclaration attestant l'achèvement des travaux
+  LISTE_MOBILIER
+  ORIGINE_FONDS
+  MODE_FINANCEMENT
+  // Copropriété
+  PV_AG
+  APPELS_FONDS
+  REGLEMENT_COPRO
+  DIAGS_COPRO
+  // TRACFIN / contact
+  PIECE_IDENTITE
+  JUSTIF_DOMICILE
+  AUTRE
+}
+
+enum TemplateCategory {
+  RELANCE_VENDEUR
+  RELANCE_ACQUEREUR
+  RESEAU_APPORTEURS
+  CR_POST_VISITE
+  RAPPEL_RDV_VEILLE
+  AUTRE
+}
+
+enum TemplateChannel {
+  SMS
+  EMAIL
+}
+
+/// Statut d'une réservation prise via le lien public
+enum BookingStatus {
+  EN_ATTENTE // demande reçue, en attente de confirmation par le client
+  CONFIRME
+  ANNULE
+}
+
+/// Type de rendez-vous proposé à la réservation publique
+enum BookingReason {
+  ESTIMATION
+  VISITE
+  CONSEIL
+  AUTRE
+}
+
+// ---------------------------------------------------------------------------
+// MODELS
+// ---------------------------------------------------------------------------
+
+model Bien {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reference String? // code court interne (ex: SAV-2026-014)
+  titre     String // libellé court affiché sur la carte Kanban
+  stage     PipelineStage @default(PROSPECTION)
+  position  Int           @default(0) // ordre dans la colonne Kanban
+  archive   Boolean       @default(false)
+
+  // Dates
+  dateDecouverte DateTime?
+  datePropriete  DateTime? // date de propriété du vendeur
+
+  // Localisation
+  adresse    String?
+  codePostal String?
+  ville      String?
+
+  // Prix
+  prixEstime Int? // estimation
+  prixMandat Int? // prix au mandat
+
+  // Caractéristiques
+  plans             Boolean? // plans disponibles oui/non
+  travauxMoins10Ans Boolean? // travaux de moins de 10 ans ?
+  diagnosticsNote   String?
+  surface           Int? // surface habitable (m²)
+  surfaceTerrain    Int? // terrain (m²)
+  mitoyennete       String? // aucune / 1 côté / 2 côtés
+  plainPied         Boolean?
+  nbPieces          Int?
+  nbChambres        Int?
+  typeConstruction  String?
+  typeCouverture    String?
+  typeCharpente     String?
+  modeChauffage     String?
+  modeEauChaude     String?
+  typeFenetres      String? // type de fenêtres / vitrages
+
+  // Estimation
+  raisonEstimation     EstimationReason?
+  raisonEstimationNote String?
+  professionProprietaire String?
+
+  // Copropriété
+  copropriete Boolean @default(false)
+
+  notes String? // historique / notes libres
+
+  // Relations
+  proprietaires Contact[]       @relation("BienProprietaires")
+  pieces        PieceSurface[]
+  documents     Document[]
+  evenements    Evenement[]
+  echanges      Echange[]
+
+  @@index([stage])
+}
+
+/// Détail des surfaces par pièce (liste dynamique dans la fiche bien)
+model PieceSurface {
+  id      String @id @default(cuid())
+  bienId  String
+  bien    Bien   @relation(fields: [bienId], references: [id], onDelete: Cascade)
+  nom     String // ex: Salon, Chambre 1, Cuisine
+  surface Float? // m²
+  ordre   Int    @default(0)
+
+  @@index([bienId])
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  civilite         String? // M. / Mme
+  nom              String
+  prenom           String?
+  telephone        String?
+  email            String?
+  adresse          String?
+  codePostal       String?
+  ville            String?
+  roles            ContactRole[] // vendeur et/ou acquéreur et/ou apporteur
+  profession       String?
+  situationFamiliale String?
+  notes            String?
+
+  // Relations
+  biens      Bien[]      @relation("BienProprietaires")
+  evenements Evenement[]
+  echanges   Echange[]
+  documents  Document[]
+  recherches Recherche[]
+  bookings   Booking[]
+}
+
+/// Critères de recherche d'un acquéreur
+model Recherche {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  titre        String?
+  typeBien     String? // maison / appartement / terrain
+  secteur      String? // villes / zones recherchées
+  budgetMin    Int?
+  budgetMax    Int?
+  surfaceMin   Int?
+  nbChambresMin Int?
+  notes        String?
+
+  @@index([contactId])
+}
+
+model Partenaire {
+  id        String         @id @default(cuid())
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  nom       String
+  type      PartenaireType @default(AUTRE)
+  specialite String?
+  societe   String?
+  telephone String?
+  email     String?
+  adresse   String?
+  notes     String?
+  nbAffaires Int           @default(0) // compteur d'affaires traitées ensemble
+
+  evenements Evenement[]
+}
+
+/// Fait daté structuré du dossier (timeline)
+model Evenement {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  type      EventType
+  titre     String
+  date      DateTime
+  description String?
+
+  bienId       String?
+  bien         Bien?       @relation(fields: [bienId], references: [id], onDelete: SetNull)
+  contactId    String?
+  contact      Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  partenaireId String?
+  partenaire   Partenaire? @relation(fields: [partenaireId], references: [id], onDelete: SetNull)
+
+  documents Document[]
+  bookings  Booking[]
+
+  @@index([bienId])
+  @@index([contactId])
+  @@index([date])
+}
+
+/// Communication (mail / SMS / appel / note interne). Saisie manuelle en v0.
+model Echange {
+  id        String       @id @default(cuid())
+  createdAt DateTime     @default(now())
+  type      ExchangeType
+  date      DateTime     @default(now())
+  contenu   String
+  direction String? // entrant / sortant
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  bienId    String?
+  bien      Bien?    @relation(fields: [bienId], references: [id], onDelete: SetNull)
+
+  // Préparation Brevo (non connecté en v0)
+  templateId  String?
+  template    Template?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  statutEnvoi SendStatus @default(NON_ENVOYE)
+
+  @@index([contactId])
+  @@index([bienId])
+}
+
+/// Document de la checklist / pièce justificative. Rattachable bien, contact, événement.
+model Document {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  type      DocType
+  libelle   String
+  statut    DocStatus @default(MANQUANT)
+  url       String? // lien fichier (optionnel en v0)
+  dateRecu  DateTime?
+  note      String?
+
+  bienId      String?
+  bien        Bien?      @relation(fields: [bienId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  evenementId String?
+  evenement   Evenement? @relation(fields: [evenementId], references: [id], onDelete: SetNull)
+
+  @@index([bienId])
+  @@index([contactId])
+}
+
+model Template {
+  id        String           @id @default(cuid())
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  nom       String
+  categorie TemplateCategory
+  canal     TemplateChannel
+  objet     String? // objet (emails uniquement)
+  corps     String
+  tutoiement Boolean         @default(false) // true = réseau apporteurs
+
+  echanges Echange[]
+}
+
+// ---------------------------------------------------------------------------
+// CALENDRIER — prise de rendez-vous en ligne (type Calendly interne)
+// ---------------------------------------------------------------------------
+
+/// Réglages globaux du calendrier (une seule ligne, id = "default")
+model CalendarSettings {
+  id              String   @id @default("default")
+  updatedAt       DateTime @updatedAt
+  dureeCreneauMin Int      @default(60) // durée d'un RDV en minutes
+  preavisHeures   Int      @default(24) // délai minimum avant un RDV
+  horizonJours    Int      @default(30) // fenêtre de réservation (jours)
+  pauseMin        Int      @default(0) // battement entre 2 RDV (minutes)
+  titrePublic     String   @default("Calendrier de Véronique Noureddine, votre partenaire immobilier en Alsace")
+  messagePublic   String? // texte d'accueil sur la page publique
+  actif           Boolean  @default(true) // false = réservations suspendues
+}
+
+/// Plage horaire récurrente d'ouverture (ex: lundi 09:00-12:00)
+model AvailabilityRule {
+  id         String  @id @default(cuid())
+  jourSemaine Int // 0 = dimanche … 6 = samedi
+  heureDebut String // "09:00"
+  heureFin   String // "12:00"
+  actif      Boolean @default(true)
+
+  @@index([jourSemaine])
+}
+
+/// Fermeture ponctuelle : journée entière ou plage horaire précise
+model SlotClosure {
+  id      String   @id @default(cuid())
+  debut   DateTime
+  fin     DateTime
+  journee Boolean  @default(false) // true = journée entière
+  motif   String?
+
+  @@index([debut])
+}
+
+/// Rendez-vous réservé depuis le lien public
+model Booking {
+  id          String        @id @default(cuid())
+  createdAt   DateTime      @default(now())
+  debut       DateTime
+  fin         DateTime
+  statut      BookingStatus @default(EN_ATTENTE)
+  motif       BookingReason @default(AUTRE)
+  /// Jeton du lien de confirmation envoyé par email (magic link)
+  token       String?       @unique
+  confirmedAt DateTime?
+  annuleAt    DateTime?
+
+  // Coordonnées saisies par le visiteur
+  nom       String
+  prenom    String?
+  email     String
+  telephone String?
+  message   String?
+
+  // Rattachement CRM
+  contactId   String?
+  contact     Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  evenementId String?
+  evenement   Evenement? @relation(fields: [evenementId], references: [id], onDelete: SetNull)
+
+  @@index([debut])
+  @@index([contactId])
+}
