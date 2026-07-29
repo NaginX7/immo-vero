@@ -85,9 +85,32 @@ votre propre adresse (mode test).
 
 ```
 RESEND_FROM="Véronique Noureddine <contact@veronique-immobilier-saverne.fr>"
+RESEND_REPLY_TO="v.noureddine@bskimmobilier.com"
 ```
 
 3. Redéployer (Vercel → Deployments → Redeploy) pour appliquer.
+
+### Pourquoi ne pas expédier depuis l'adresse BSK ?
+
+Resend (comme tout service d'envoi sérieux) authentifie des **domaines**, pas des
+adresses isolées : il faut prouver qu'on contrôle le domaine en y ajoutant des
+enregistrements DNS. Le domaine `bskimmobilier.com` appartient au réseau BSK, sa
+zone DNS n'est pas accessible à un mandataire indépendant.
+
+Expédier malgré tout depuis `@bskimmobilier.com` sans cette autorisation ferait
+échouer les contrôles SPF/DKIM : les messages partiraient en spam, voire
+seraient rejetés par Gmail et Outlook.
+
+La solution retenue est celle de l'usage professionnel courant :
+
+- **Expéditeur** : le domaine vérifié, au nom de Véronique — le destinataire voit
+  bien « Véronique Noureddine » ;
+- **Réponse** (`RESEND_REPLY_TO`) : l'adresse BSK habituelle — un clic sur
+  « Répondre » écrit bien à `v.noureddine@bskimmobilier.com`.
+
+Si un jour le service informatique de BSK accepte d'ajouter les enregistrements
+DNS de Resend sur leur domaine, il suffira de basculer `RESEND_FROM` sur
+l'adresse BSK.
 
 ---
 
