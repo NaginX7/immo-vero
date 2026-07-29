@@ -334,7 +334,6 @@ async function main() {
           SDEA: "RECU",
           FACTURES_TRAVAUX: "RECU",
           MODE_FINANCEMENT: "NON_APPLICABLE",
-          ORIGINE_FONDS: "NON_APPLICABLE",
         }),
       },
     },
@@ -548,7 +547,6 @@ async function main() {
             REGLEMENT_COPRO: "RECU",
             APPELS_FONDS: "RECU",
             DIAGS_COPRO: "RECU",
-            ORIGINE_FONDS: "RECU",
             MODE_FINANCEMENT: "RECU",
           },
           true
@@ -582,7 +580,6 @@ async function main() {
           TAXE_FONCIERE: "RECU",
           DIAG_IMMO: "RECU",
           SDEA: "RECU",
-          ORIGINE_FONDS: "RECU",
           MODE_FINANCEMENT: "RECU",
         }),
       },

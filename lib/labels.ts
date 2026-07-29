@@ -154,7 +154,6 @@ export const BIEN_DOC_CHECKLIST: DocType[] = [
   "DP",
   "DACT",
   "LISTE_MOBILIER",
-  "ORIGINE_FONDS",
   "MODE_FINANCEMENT",
 ];
 
@@ -168,8 +167,11 @@ export const COPRO_DOC_CHECKLIST: DocType[] = [
 
 /** Pièces obligatoires au sens vigilance TRACFIN. */
 export const TRACFIN_DOC_TYPES: DocType[] = [
-  "PIECE_IDENTITE",
+  // Côté vendeur (fiche bien)
   "TITRE_PROPRIETE",
+  "TAXE_FONCIERE",
+  // Côté personne (fiche contact) — l'origine des fonds concerne l'acquéreur
+  "PIECE_IDENTITE",
   "ORIGINE_FONDS",
 ];
 

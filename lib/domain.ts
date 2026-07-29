@@ -15,21 +15,24 @@ export function docStats(docs: DocLike[]) {
   return { recus, total, manquants, pct, complet: manquants === 0 };
 }
 
-/** Pièces TRACFIN encore manquantes parmi une liste de documents. */
+/**
+ * Pièces TRACFIN encore manquantes.
+ *
+ * On raisonne uniquement sur les documents réellement suivis dans la fiche
+ * examinée : les pièces demandées à une personne (identité, origine des fonds)
+ * ne figurent pas dans la checklist d'un bien, et inversement. Les lister
+ * malgré tout afficherait des manques qui n'ont pas lieu d'être.
+ */
 export function tracfinMissing(docs: DocLike[]): DocType[] {
-  const present = new Set(
-    docs.filter((d) => d.statut === "RECU").map((d) => d.type)
-  );
-  return TRACFIN_DOC_TYPES.filter((t) => {
-    // On ne considère TRACFIN incomplet que si le type figure dans la liste
-    // ET n'est pas reçu (s'il n'est pas du tout présent, on le compte manquant).
-    return !present.has(t);
-  });
+  return docs
+    .filter((d) => TRACFIN_DOC_TYPES.includes(d.type) && d.statut === "MANQUANT")
+    .map((d) => d.type);
 }
 
-/** true si toutes les pièces TRACFIN présentes dans la checklist sont reçues. */
+/** true si toutes les pièces TRACFIN suivies dans cette fiche sont réglées. */
 export function isTracfinOk(docs: DocLike[]): boolean {
-  const relevant = docs.filter((d) => TRACFIN_DOC_TYPES.includes(d.type));
-  if (relevant.length === 0) return false;
-  return relevant.every((d) => d.statut === "RECU");
+  const suivies = docs.filter((d) => TRACFIN_DOC_TYPES.includes(d.type));
+  if (suivies.length === 0) return false;
+  // « Non applicable » vaut réglé : la pièce a été écartée en connaissance de cause.
+  return suivies.every((d) => d.statut !== "MANQUANT");
 }
