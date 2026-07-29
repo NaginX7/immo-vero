@@ -15,6 +15,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/auth-actions";
+import { Logo } from "@/components/logo";
 
 const NAV = [
   { href: "/", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
@@ -32,8 +33,8 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-navy-800 bg-navy-900 text-navy-100 lg:flex">
       <div className="flex items-center gap-3 px-6 py-6">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent font-serif text-lg font-bold text-white">
-          IS
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-white">
+          <Logo className="h-6 w-6" />
         </div>
         <div className="leading-tight">
           <p className="text-sm font-semibold text-white">L&apos;Immobilière</p>
@@ -86,8 +87,8 @@ export function Sidebar() {
 export function MobileTopbar() {
   return (
     <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-navy-900 px-4 py-3 text-white lg:hidden">
-      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-sm font-bold">
-        IS
+      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-white">
+        <Logo className="h-5 w-5" />
       </div>
       <span className="text-sm font-semibold">L&apos;Immobilière de Saverne</span>
     </div>
