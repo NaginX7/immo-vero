@@ -12,6 +12,7 @@ import type {
   DocStatus,
   TemplateCategory,
   TemplateChannel,
+  ModeFinancement,
 } from "@prisma/client";
 
 // --- Pipeline -------------------------------------------------------------
@@ -70,6 +71,16 @@ export const ROLE_BADGE: Record<ContactRole, string> = {
   ACQUEREUR: "bg-sky-100 text-sky-700",
   APPORTEUR: "bg-powder-100 text-coral-600",
 };
+
+export const MODE_FINANCEMENT_LABELS: Record<ModeFinancement, string> = {
+  PRET: "Prêt bancaire",
+  APPORT: "Apport personnel",
+  DONATION: "Donation",
+  VENTE_BIEN: "Vente d'un bien (à venir ou en cours)",
+};
+
+/** Types de bien proposés à un acquéreur. */
+export const TYPES_BIEN_RECHERCHE = ["Maison", "Appartement"] as const;
 
 export const ESTIMATION_REASON_LABELS: Record<EstimationReason, string> = {
   VENTE: "Vente",

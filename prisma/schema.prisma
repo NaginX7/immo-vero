@@ -269,10 +269,32 @@ model Recherche {
   budgetMin    Int?
   budgetMax    Int?
   surfaceMin   Int?
+  nbPiecesMin   Int?
   nbChambresMin Int?
+
+  // Prestations attendues
+  avecTerrain       Boolean @default(false)
+  surfaceTerrainMin Int? // m², renseigné si avecTerrain
+  garage            Boolean @default(false)
+  sousSol           Boolean @default(false)
+  dependance        Boolean @default(false)
+  piscine           Boolean @default(false)
+
+  /// Biens déjà vus, refusés, secteurs écartés… (saisie libre)
+  historique       String?
+  modesFinancement ModeFinancement[]
+
   notes        String?
 
   @@index([contactId])
+}
+
+/// Manière dont l'acquéreur finance son achat (cumulable)
+enum ModeFinancement {
+  PRET
+  APPORT
+  DONATION
+  VENTE_BIEN // vente à venir ou en cours d'un bien
 }
 
 model Partenaire {

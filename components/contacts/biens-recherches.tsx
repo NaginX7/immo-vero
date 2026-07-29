@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Plus, Link2, Search, Trash2, X, Loader2, Home } from "lucide-react";
+import { Plus, Link2, Search, Trash2, X, Loader2, Home, Wallet } from "lucide-react";
 import type { Bien, Recherche } from "@prisma/client";
 
 import {
@@ -12,7 +12,7 @@ import {
   unlinkBienFromContact,
 } from "@/lib/actions";
 import { formatEuro } from "@/lib/utils";
-import { STAGE_LABELS } from "@/lib/labels";
+import { STAGE_LABELS, MODE_FINANCEMENT_LABELS } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -127,11 +127,55 @@ export function BiensRecherchesTab({
                             ? `≤ ${formatEuro(r.budgetMax)}`
                             : null,
                           r.surfaceMin ? `≥ ${r.surfaceMin} m²` : null,
+                          r.nbPiecesMin ? `≥ ${r.nbPiecesMin} p.` : null,
                           r.nbChambresMin ? `≥ ${r.nbChambresMin} ch.` : null,
+                          r.avecTerrain
+                            ? r.surfaceTerrainMin
+                              ? `terrain ≥ ${r.surfaceTerrainMin} m²`
+                              : "terrain"
+                            : null,
                         ]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
+
+                      {/* Prestations souhaitées */}
+                      {(r.garage || r.sousSol || r.dependance || r.piscine) && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {[
+                            r.garage && "Garage",
+                            r.sousSol && "Sous-sol",
+                            r.dependance && "Dépendance",
+                            r.piscine && "Piscine",
+                          ]
+                            .filter(Boolean)
+                            .map((p) => (
+                              <span
+                                key={String(p)}
+                                className="rounded-full bg-navy-50 px-2 py-0.5 text-[11px] text-navy-700"
+                              >
+                                {p}
+                              </span>
+                            ))}
+                        </div>
+                      )}
+
+                      {r.modesFinancement.length > 0 && (
+                        <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                          <Wallet className="h-3 w-3 shrink-0" />
+                          {r.modesFinancement
+                            .map((m) => MODE_FINANCEMENT_LABELS[m])
+                            .join(", ")}
+                        </p>
+                      )}
+
+                      {r.historique && (
+                        <p className="mt-1.5 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
+                          <span className="font-medium">Historique : </span>
+                          {r.historique}
+                        </p>
+                      )}
+
                       {r.notes && (
                         <p className="mt-1 text-xs text-muted-foreground">
                           {r.notes}

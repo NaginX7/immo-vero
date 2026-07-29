@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NativeSelect } from "@/components/ui/native-select";
+import { CriteresAcquereur } from "@/components/contacts/criteres-acquereur";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,11 @@ export function ContactFormDialog({ contact }: { contact?: Contact }) {
   const isEdit = !!contact;
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
+  const [roles, setRoles] = useState<ContactRole[]>(contact?.roles ?? []);
+
+  function basculerRole(role: ContactRole, coche: boolean) {
+    setRoles((r) => (coche ? [...r, role] : r.filter((x) => x !== role)));
+  }
 
   const action = isEdit
     ? (fd: FormData) =>
@@ -87,7 +93,8 @@ export function ContactFormDialog({ contact }: { contact?: Contact }) {
                   <Checkbox
                     name="roles"
                     value={role}
-                    defaultChecked={contact?.roles.includes(role) ?? false}
+                    checked={roles.includes(role)}
+                    onCheckedChange={(v) => basculerRole(role, v === true)}
                   />
                   {ROLE_LABELS[role]}
                 </label>
@@ -138,6 +145,11 @@ export function ContactFormDialog({ contact }: { contact?: Contact }) {
               />
             </div>
           </div>
+
+          {/* Critères de recherche : uniquement à la création d'un acquéreur.
+              Pour un contact existant, les recherches se gèrent depuis sa fiche
+              (onglet « Biens & Recherches »), qui en accepte plusieurs. */}
+          {!isEdit && roles.includes("ACQUEREUR") && <CriteresAcquereur />}
 
           <div className="space-y-1.5">
             <Label className="text-xs">Notes</Label>

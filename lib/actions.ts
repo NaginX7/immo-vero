@@ -12,6 +12,7 @@ import type {
   DocType,
   EstimationReason,
   EventType,
+  ModeFinancement,
   ExchangeType,
   PartenaireType,
   PipelineStage,
@@ -395,6 +396,52 @@ export async function createContact(fd: FormData) {
       notes: str(fd, "notes"),
     },
   });
+
+  // Acquéreur : les critères saisis dans le même formulaire (préfixe « r_ »)
+  // deviennent sa première fiche recherche.
+  if (contact.roles.includes("ACQUEREUR")) {
+    const criteres = {
+      typeBien: str(fd, "r_typeBien"),
+      secteur: str(fd, "r_secteur"),
+      budgetMin: int(fd, "r_budgetMin"),
+      budgetMax: int(fd, "r_budgetMax"),
+      surfaceMin: int(fd, "r_surfaceMin"),
+      nbPiecesMin: int(fd, "r_nbPiecesMin"),
+      nbChambresMin: int(fd, "r_nbChambresMin"),
+      avecTerrain: bool(fd, "r_avecTerrain"),
+      surfaceTerrainMin: int(fd, "r_surfaceTerrainMin"),
+      garage: bool(fd, "r_garage"),
+      sousSol: bool(fd, "r_sousSol"),
+      dependance: bool(fd, "r_dependance"),
+      piscine: bool(fd, "r_piscine"),
+      historique: str(fd, "r_historique"),
+      modesFinancement: fd
+        .getAll("r_modesFinancement")
+        .filter((v): v is string => typeof v === "string") as ModeFinancement[],
+    };
+
+    // On ne crée la fiche que si au moins un critère est renseigné : cocher
+    // « acquéreur » sans rien remplir ne doit pas produire une recherche vide.
+    const renseignee =
+      Object.entries(criteres).some(([cle, v]) =>
+        cle === "modesFinancement"
+          ? (v as string[]).length > 0
+          : typeof v === "boolean"
+          ? v
+          : v !== null
+      );
+
+    if (renseignee) {
+      await prisma.recherche.create({
+        data: {
+          contactId: contact.id,
+          titre: "Recherche",
+          ...criteres,
+        },
+      });
+    }
+  }
+
   revalidatePath("/contacts");
   redirect(`/contacts/${contact.id}`);
 }
