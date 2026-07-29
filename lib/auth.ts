@@ -1,6 +1,11 @@
 // Authentification simple par mot de passe global (utilisateur unique).
 // Le cookie de session est signé (HMAC-SHA256) : il ne peut pas être forgé.
-// Utilise l'API Web Crypto → compatible middleware Edge ET runtime Node.
+//
+// ⚠️ La VÉRIFICATION du cookie est dupliquée dans `middleware.ts`, qui doit
+// rester autonome (contrainte de l'Edge Runtime Vercel : un middleware ne peut
+// pas importer un module partagé avec du code "use server").
+// Le format du cookie doit rester identique des deux côtés :
+//   valeur = "<expiration_ms>.<hmac_sha256_hex(secret, expiration_ms)>"
 
 export const COOKIE_NAME = "giorgio_session";
 export const SESSION_DAYS = 30;
@@ -55,14 +60,3 @@ export async function verifySessionValue(
   return diff === 0;
 }
 
-/**
- * État de la configuration d'authentification.
- * - "ouvert"   : pas de mot de passe défini (développement local uniquement)
- * - "protege"  : mot de passe défini
- * - "bloque"   : production sans mot de passe → on refuse tout par sécurité
- */
-export function authMode(): "ouvert" | "protege" | "bloque" {
-  const password = process.env.APP_PASSWORD;
-  if (password && password.length > 0) return "protege";
-  return process.env.NODE_ENV === "production" ? "bloque" : "ouvert";
-}
