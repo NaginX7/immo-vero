@@ -20,6 +20,7 @@ import { BiensFilters } from "@/components/biens/biens-filters";
 import { Pagination } from "@/components/pagination";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { requireAuth } from "@/lib/auth-guard";
 
 const PAGE_SIZE = 10;
 
@@ -40,6 +41,7 @@ export default async function BiensPage({
 }: {
   searchParams: SP;
 }) {
+  await requireAuth();
   const q = one(searchParams.q);
   const stage = one(searchParams.stage) as PipelineStage | undefined;
   const ville = one(searchParams.ville);

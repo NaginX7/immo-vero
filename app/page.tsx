@@ -24,6 +24,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ExchangeType } from "@prisma/client";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ const exchangeIcon: Record<ExchangeType, typeof Mail> = {
 };
 
 export default async function DashboardPage() {
+  await requireAuth();
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 

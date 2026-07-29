@@ -14,6 +14,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ const MOTIF_LABELS: Record<string, string> = {
 };
 
 export default async function CalendrierPage() {
+  await requireAuth();
   const settings = await getCalendarSettings();
   const [rules, closures, bookings] = await Promise.all([
     prisma.availabilityRule.findMany({

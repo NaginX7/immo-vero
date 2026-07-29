@@ -10,6 +10,7 @@ import { ContactFormDialog } from "@/components/contacts/contact-form-dialog";
 import { ContactsFilters } from "@/components/contacts/contacts-filters";
 import { Pagination } from "@/components/pagination";
 import { Card, CardContent } from "@/components/ui/card";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function ContactsPage({
 }: {
   searchParams: SP;
 }) {
+  await requireAuth();
   const q = one(searchParams.q);
   const role = one(searchParams.role) as ContactRole | undefined;
   const ville = one(searchParams.ville);

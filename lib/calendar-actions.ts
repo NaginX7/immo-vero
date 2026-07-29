@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { generateSlots, parseHHMM } from "@/lib/slots";
 import type { BookingReason } from "@prisma/client";
+import { requireAuth } from "@/lib/auth-guard";
 
 const SETTINGS_ID = "default";
 
@@ -112,6 +113,7 @@ export async function getCalendarSettings() {
 // --- Réglages -------------------------------------------------------------
 
 export async function updateCalendarSettings(fd: FormData) {
+  await requireAuth();
   const num = (k: string, fallback: number) => {
     const v = fd.get(k);
     const n = typeof v === "string" ? parseInt(v, 10) : NaN;
@@ -157,6 +159,7 @@ export async function upsertAvailabilityRule(input: {
   heureFin: string;
   actif?: boolean;
 }): Promise<{ ok: boolean; error?: string }> {
+  await requireAuth();
   const debut = input.heureDebut?.trim() ?? "";
   const fin = input.heureFin?.trim() ?? "";
   const d = parseHHMM(debut);
@@ -195,12 +198,14 @@ export async function upsertAvailabilityRule(input: {
 }
 
 export async function toggleAvailabilityRule(id: string, actif: boolean) {
+  await requireAuth();
   await prisma.availabilityRule.update({ where: { id }, data: { actif } });
   revalidatePath("/calendrier");
   revalidatePath("/rdv");
 }
 
 export async function deleteAvailabilityRule(id: string) {
+  await requireAuth();
   await prisma.availabilityRule.delete({ where: { id } });
   revalidatePath("/calendrier");
   revalidatePath("/rdv");
@@ -209,6 +214,7 @@ export async function deleteAvailabilityRule(id: string) {
 // --- Fermetures ----------------------------------------------------------
 
 export async function addClosure(fd: FormData) {
+  await requireAuth();
   const journee = fd.get("journee") === "on" || fd.get("journee") === "true";
   const dateStr = String(fd.get("date") ?? "").trim();
   if (!dateStr) return { ok: false, error: "Date requise." };
@@ -246,6 +252,7 @@ export async function addClosure(fd: FormData) {
 }
 
 export async function deleteClosure(id: string) {
+  await requireAuth();
   await prisma.slotClosure.delete({ where: { id } });
   revalidatePath("/calendrier");
   revalidatePath("/rdv");
@@ -254,6 +261,7 @@ export async function deleteClosure(id: string) {
 // --- Réservations ---------------------------------------------------------
 
 export async function cancelBooking(id: string) {
+  await requireAuth();
   const booking = await prisma.booking.update({
     where: { id },
     data: { statut: "ANNULE", annuleAt: new Date() },

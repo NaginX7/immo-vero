@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { TemplateCard } from "@/components/templates/template-card";
 import { Card, CardContent } from "@/components/ui/card";
 import type { TemplateCategory } from "@prisma/client";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ const CATEGORY_ORDER: TemplateCategory[] = [
 ];
 
 export default async function TemplatesPage() {
+  await requireAuth();
   const [templates, contacts, biens] = await Promise.all([
     prisma.template.findMany({ orderBy: { nom: "asc" } }),
     prisma.contact.findMany({

@@ -11,6 +11,7 @@ import { EvenementList } from "@/components/timeline/lists";
 import { DeleteButton } from "@/components/delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function PartenaireDetailPage({
 }: {
   params: { id: string };
 }) {
+  await requireAuth();
   const partenaire = await prisma.partenaire.findUnique({
     where: { id: params.id },
     include: {

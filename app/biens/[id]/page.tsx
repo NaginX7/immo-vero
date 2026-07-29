@@ -27,6 +27,7 @@ import { AddEchangeDialog } from "@/components/timeline/add-echange-dialog";
 import { EvenementList, EchangeList } from "@/components/timeline/lists";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,7 @@ export default async function BienDetailPage({
 }: {
   params: { id: string };
 }) {
+  await requireAuth();
   const bien = await prisma.bien.findUnique({
     where: { id: params.id },
     include: {

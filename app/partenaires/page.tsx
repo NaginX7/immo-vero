@@ -7,10 +7,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PartenaireFormDialog } from "@/components/partenaires/partenaire-form-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
 export default async function PartenairesPage() {
+  await requireAuth();
   const partenaires = await prisma.partenaire.findMany({
     orderBy: { nbAffaires: "desc" },
   });

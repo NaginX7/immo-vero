@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { BIEN_DOC_CHECKLIST, COPRO_DOC_CHECKLIST, DOC_TYPE_LABELS } from "@/lib/labels";
+import { requireAuth } from "@/lib/auth-guard";
 import type {
   ContactRole,
   DocStatus,
@@ -51,6 +52,7 @@ function date(fd: FormData, key: string): Date | null {
 // --- Biens ---------------------------------------------------------------
 
 export async function createBien(fd: FormData) {
+  await requireAuth();
   const copropriete = bool(fd, "copropriete");
   const bien = await prisma.bien.create({
     data: {
@@ -84,6 +86,7 @@ export async function createBien(fd: FormData) {
 }
 
 export async function updateBien(id: string, fd: FormData) {
+  await requireAuth();
   await prisma.bien.update({
     where: { id },
     data: {
@@ -124,6 +127,7 @@ export async function updateBien(id: string, fd: FormData) {
 }
 
 export async function updateBienStage(id: string, stage: PipelineStage) {
+  await requireAuth();
   await prisma.bien.update({ where: { id }, data: { stage } });
   revalidatePath("/pipeline");
   revalidatePath("/biens");
@@ -138,6 +142,7 @@ export async function updateBienStage(id: string, stage: PipelineStage) {
 export async function reorderBiens(
   updates: { id: string; stage: PipelineStage; position: number }[]
 ) {
+  await requireAuth();
   if (updates.length === 0) return;
   await prisma.$transaction(
     updates.map((u) =>
@@ -153,6 +158,7 @@ export async function reorderBiens(
 }
 
 export async function deleteBien(id: string) {
+  await requireAuth();
   await prisma.bien.delete({ where: { id } });
   revalidatePath("/biens");
   revalidatePath("/pipeline");
@@ -162,6 +168,7 @@ export async function deleteBien(id: string) {
 // --- Documents (checklist) ----------------------------------------------
 
 export async function setDocStatus(docId: string, statut: DocStatus) {
+  await requireAuth();
   const doc = await prisma.document.update({
     where: { id: docId },
     data: {
@@ -175,6 +182,7 @@ export async function setDocStatus(docId: string, statut: DocStatus) {
 }
 
 export async function addDocument(fd: FormData) {
+  await requireAuth();
   const type = (str(fd, "type") as DocType) ?? "AUTRE";
   const doc = await prisma.document.create({
     data: {
@@ -192,6 +200,7 @@ export async function addDocument(fd: FormData) {
 // --- Pièces (surfaces) ---------------------------------------------------
 
 export async function addPiece(fd: FormData) {
+  await requireAuth();
   const bienId = reqStr(fd, "bienId");
   const count = await prisma.pieceSurface.count({ where: { bienId } });
   await prisma.pieceSurface.create({
@@ -206,6 +215,7 @@ export async function addPiece(fd: FormData) {
 }
 
 export async function deletePiece(id: string, bienId: string) {
+  await requireAuth();
   await prisma.pieceSurface.delete({ where: { id } });
   revalidatePath(`/biens/${bienId}`);
 }
@@ -213,6 +223,7 @@ export async function deletePiece(id: string, bienId: string) {
 // --- Événements ----------------------------------------------------------
 
 export async function addEvenement(fd: FormData) {
+  await requireAuth();
   const ev = await prisma.evenement.create({
     data: {
       type: (str(fd, "type") as EventType) ?? "AUTRE",
@@ -233,6 +244,7 @@ export async function addEvenement(fd: FormData) {
 // --- Échanges ------------------------------------------------------------
 
 export async function addEchange(fd: FormData) {
+  await requireAuth();
   const ex = await prisma.echange.create({
     data: {
       type: (str(fd, "type") as ExchangeType) ?? "NOTE",
@@ -264,6 +276,7 @@ export async function sendTemplateEmail(input: {
   bienId?: string;
   templateId?: string;
 }): Promise<SendEmailResult> {
+  await requireAuth();
   const to = input.to?.trim();
   if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
     return { ok: false, error: "Adresse email du destinataire invalide." };
@@ -301,6 +314,7 @@ function parseRoles(fd: FormData): ContactRole[] {
 }
 
 export async function createContact(fd: FormData) {
+  await requireAuth();
   const contact = await prisma.contact.create({
     data: {
       civilite: str(fd, "civilite"),
@@ -322,6 +336,7 @@ export async function createContact(fd: FormData) {
 }
 
 export async function updateContact(id: string, fd: FormData) {
+  await requireAuth();
   await prisma.contact.update({
     where: { id },
     data: {
@@ -344,6 +359,7 @@ export async function updateContact(id: string, fd: FormData) {
 }
 
 export async function deleteContact(id: string) {
+  await requireAuth();
   await prisma.contact.delete({ where: { id } });
   revalidatePath("/contacts");
   redirect("/contacts");
@@ -352,6 +368,7 @@ export async function deleteContact(id: string) {
 // --- Recherches ----------------------------------------------------------
 
 export async function addRecherche(fd: FormData) {
+  await requireAuth();
   const contactId = reqStr(fd, "contactId");
   await prisma.recherche.create({
     data: {
@@ -370,12 +387,14 @@ export async function addRecherche(fd: FormData) {
 }
 
 export async function deleteRecherche(id: string, contactId: string) {
+  await requireAuth();
   await prisma.recherche.delete({ where: { id } });
   revalidatePath(`/contacts/${contactId}`);
 }
 
 /** Lie un bien existant à un contact (propriétaire). */
 export async function linkBienToContact(contactId: string, bienId: string) {
+  await requireAuth();
   await prisma.contact.update({
     where: { id: contactId },
     data: { biens: { connect: { id: bienId } } },
@@ -385,6 +404,7 @@ export async function linkBienToContact(contactId: string, bienId: string) {
 }
 
 export async function unlinkBienFromContact(contactId: string, bienId: string) {
+  await requireAuth();
   await prisma.contact.update({
     where: { id: contactId },
     data: { biens: { disconnect: { id: bienId } } },
@@ -396,6 +416,7 @@ export async function unlinkBienFromContact(contactId: string, bienId: string) {
 // --- Partenaires ---------------------------------------------------------
 
 export async function createPartenaire(fd: FormData) {
+  await requireAuth();
   const p = await prisma.partenaire.create({
     data: {
       nom: reqStr(fd, "nom") || "Nouveau partenaire",
@@ -414,6 +435,7 @@ export async function createPartenaire(fd: FormData) {
 }
 
 export async function updatePartenaire(id: string, fd: FormData) {
+  await requireAuth();
   await prisma.partenaire.update({
     where: { id },
     data: {
@@ -433,6 +455,7 @@ export async function updatePartenaire(id: string, fd: FormData) {
 }
 
 export async function deletePartenaire(id: string) {
+  await requireAuth();
   await prisma.partenaire.delete({ where: { id } });
   revalidatePath("/partenaires");
   redirect("/partenaires");

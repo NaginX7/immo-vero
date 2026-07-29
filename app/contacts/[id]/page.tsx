@@ -28,6 +28,7 @@ import { EvenementList, EchangeList } from "@/components/timeline/lists";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function ContactDetailPage({
 }: {
   params: { id: string };
 }) {
+  await requireAuth();
   const [contact, allBiens, emailTemplates] = await Promise.all([
     prisma.contact.findUnique({
       where: { id: params.id },

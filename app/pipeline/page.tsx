@@ -3,10 +3,12 @@ import { docStats, isTracfinOk } from "@/lib/domain";
 import { PageHeader } from "@/components/layout/page-header";
 import { BienFormDialog } from "@/components/biens/bien-form-dialog";
 import { KanbanBoard, type KanbanCard } from "@/components/kanban/board";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
 export default async function PipelinePage() {
+  await requireAuth();
   const biens = await prisma.bien.findMany({
     where: { archive: false },
     include: { documents: true },
