@@ -9,11 +9,19 @@ export const dynamic = "force-dynamic";
 
 export default async function PipelinePage() {
   await requireAuth();
-  const biens = await prisma.bien.findMany({
-    where: { archive: false },
-    include: { documents: true },
-    orderBy: [{ position: "asc" }, { updatedAt: "desc" }],
-  });
+  const [biens, notaires] = await Promise.all([
+    prisma.bien.findMany({
+      where: { archive: false },
+      include: { documents: true },
+      orderBy: [{ position: "asc" }, { updatedAt: "desc" }],
+    }),
+    // Proposés lorsqu'un bien est déposé dans la colonne « Compromis »
+    prisma.partenaire.findMany({
+      where: { type: "NOTAIRE" },
+      select: { id: true, nom: true, societe: true, telephone: true, email: true },
+      orderBy: { nom: "asc" },
+    }),
+  ]);
 
   const cards: KanbanCard[] = biens.map((b) => {
     const stats = docStats(b.documents);
@@ -37,7 +45,7 @@ export default async function PipelinePage() {
       >
         <BienFormDialog />
       </PageHeader>
-      <KanbanBoard cards={cards} />
+      <KanbanBoard cards={cards} notaires={notaires} />
     </div>
   );
 }

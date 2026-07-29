@@ -136,6 +136,70 @@ export async function updateBienStage(id: string, stage: PipelineStage) {
 }
 
 /**
+ * Enregistre un compromis auprès d'un ou plusieurs notaires.
+ *
+ * L'affaire apparaît dans le bloc « Affaires & recommandations » de chaque
+ * notaire concerné, et incrémente son compteur d'affaires traitées ensemble.
+ * La description est reconstituée côté serveur à partir du bien, pour rester
+ * juste même si la page appelante est un peu ancienne.
+ */
+export async function enregistrerCompromisNotaires(
+  bienId: string,
+  notaireIds: string[]
+): Promise<{ ok: boolean; error?: string; crees?: number }> {
+  await requireAuth();
+
+  const ids = Array.from(new Set(notaireIds.filter(Boolean)));
+  if (ids.length === 0) return { ok: false, error: "Aucun notaire sélectionné." };
+
+  const bien = await prisma.bien.findUnique({
+    where: { id: bienId },
+    include: { proprietaires: true },
+  });
+  if (!bien) return { ok: false, error: "Bien introuvable." };
+
+  const clients = bien.proprietaires
+    .map((p) => `${p.prenom ?? ""} ${p.nom}`.trim())
+    .filter(Boolean)
+    .join(", ");
+
+  const description = [
+    clients ? `Client : ${clients}` : null,
+    `Bien : ${bien.titre}`,
+  ]
+    .filter(Boolean)
+    .join(" — ");
+
+  const aujourdhui = new Date();
+
+  await prisma.$transaction([
+    prisma.evenement.createMany({
+      data: ids.map((partenaireId) => ({
+        // Type « apport d'affaire » : l'entrée se range dans le bloc
+        // « Affaires & recommandations » de la fiche partenaire.
+        type: "APPORT_AFFAIRE" as const,
+        titre: "Compromis",
+        date: aujourdhui,
+        description,
+        partenaireId,
+        bienId: bien.id,
+      })),
+    }),
+    prisma.partenaire.updateMany({
+      where: { id: { in: ids } },
+      data: { nbAffaires: { increment: 1 } },
+    }),
+  ]);
+
+  for (const id of ids) revalidatePath(`/partenaires/${id}`);
+  revalidatePath("/partenaires");
+  revalidatePath(`/biens/${bienId}`);
+
+  return { ok: true, crees: ids.length };
+}
+
+
+/**
  * Persiste l'ordre du Kanban : met à jour l'étape ET la position des biens
  * des colonnes impactées (source + destination) en une transaction.
  */

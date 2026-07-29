@@ -18,6 +18,10 @@ import {
 import type { PipelineStage } from "@prisma/client";
 
 import { reorderBiens } from "@/lib/actions";
+import {
+  CompromisDialog,
+  type NotaireLite,
+} from "@/components/biens/compromis-dialog";
 import { PIPELINE_ORDER, STAGE_LABELS } from "@/lib/labels";
 import { formatEuro, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -52,9 +56,19 @@ function groupByStage(cards: KanbanCard[]): Record<PipelineStage, KanbanCard[]> 
   return map;
 }
 
-export function KanbanBoard({ cards }: { cards: KanbanCard[] }) {
+export function KanbanBoard({
+  cards,
+  notaires,
+}: {
+  cards: KanbanCard[];
+  notaires: NotaireLite[];
+}) {
   const [columns, setColumns] = useState(() => groupByStage(cards));
   const [visible, setVisible] = useState<PipelineStage[]>(PIPELINE_ORDER);
+  const [compromis, setCompromis] = useState<{
+    id: string;
+    titre: string;
+  } | null>(null);
   const [, start] = useTransition();
 
   // Restaure les colonnes choisies (après le montage, pour éviter tout
@@ -120,6 +134,11 @@ export function KanbanBoard({ cards }: { cards: KanbanCard[] }) {
       next[stage].map((c, i) => ({ id: c.id, stage, position: i }))
     );
     start(() => reorderBiens(updates));
+
+    // Bien déposé dans « Compromis » : on demande le ou les notaires.
+    if (from !== to && to === "COMPROMIS") {
+      setCompromis({ id: moved.id, titre: moved.titre });
+    }
   }
 
   const shownStages = PIPELINE_ORDER.filter((s) => visible.includes(s));
@@ -271,6 +290,16 @@ export function KanbanBoard({ cards }: { cards: KanbanCard[] }) {
           })}
         </div>
       </DragDropContext>
+
+      {compromis && (
+        <CompromisDialog
+          open
+          onOpenChange={(v) => !v && setCompromis(null)}
+          bienId={compromis.id}
+          bienTitre={compromis.titre}
+          notaires={notaires}
+        />
+      )}
     </div>
   );
 }

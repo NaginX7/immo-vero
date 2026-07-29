@@ -72,6 +72,13 @@ export default async function BienDetailPage({
   const tracfin = isTracfinOk(bien.documents);
   const tracfinMiss = tracfinMissing(bien.documents);
 
+  // Notaires proposés lors du passage en compromis
+  const notaires = await prisma.partenaire.findMany({
+    where: { type: "NOTAIRE" },
+    select: { id: true, nom: true, societe: true, telephone: true, email: true },
+    orderBy: { nom: "asc" },
+  });
+
   // --- Acheteurs compatibles ---------------------------------------------
   const recherches = await prisma.recherche.findMany({
     include: { contact: true },
@@ -125,7 +132,12 @@ export default async function BienDetailPage({
           .join(" · ")}
         backHref="/biens"
       >
-        <StageSelect bienId={bien.id} stage={bien.stage} />
+        <StageSelect
+          bienId={bien.id}
+          bienTitre={bien.titre}
+          stage={bien.stage}
+          notaires={notaires}
+        />
         <AcheteursCompatibles matches={matches} />
         <BienFormDialog bien={bien} />
         <DeleteButton action={deleteBien.bind(null, bien.id)} />
