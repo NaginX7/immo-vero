@@ -16,16 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import {
+  AddressInput,
+  type AdresseChoisie,
+} from "@/components/rdv/address-input";
 
 export type PublicSlot = { debut: string; fin: string };
-
-const MOTIFS = [
-  { value: "ESTIMATION", label: "Estimation de mon bien" },
-  { value: "VISITE", label: "Visite d'un bien" },
-  { value: "CONSEIL", label: "Conseil / information" },
-  { value: "AUTRE", label: "Autre" },
-];
 
 function dayKey(iso: string) {
   return iso.slice(0, 10);
@@ -68,6 +64,7 @@ export function BookingForm({
     days[0]?.[0] ?? null
   );
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [adresse, setAdresse] = useState<AdresseChoisie | null>(null);
   const [done, setDone] = useState<null | { when: string }>(null);
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
@@ -83,7 +80,9 @@ export function BookingForm({
         prenom: String(fd.get("prenom") ?? ""),
         email: String(fd.get("email") ?? ""),
         telephone: String(fd.get("telephone") ?? ""),
-        motif: String(fd.get("motif") ?? "AUTRE"),
+        adresseBien: adresse?.label ?? "",
+        villeBien: adresse?.ville ?? "",
+        codePostalBien: adresse?.codePostal ?? "",
         message: String(fd.get("message") ?? ""),
       });
       if (res.ok) {
@@ -221,14 +220,18 @@ export function BookingForm({
                 <Input name="telephone" type="tel" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Motif du rendez-vous</Label>
-                <NativeSelect name="motif" defaultValue="ESTIMATION">
-                  {MOTIFS.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </NativeSelect>
+                <Label htmlFor="adresse-bien" className="text-xs">
+                  Adresse du bien
+                </Label>
+                <AddressInput
+                  id="adresse-bien"
+                  value={adresse}
+                  onChange={setAdresse}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Commencez à saisir l&apos;adresse : les suggestions
+                  proviennent du référentiel national des adresses.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Message (facultatif)</Label>

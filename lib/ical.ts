@@ -59,19 +59,19 @@ export type BookingPourIcs = {
   debut: Date;
   fin: Date;
   statut: string;
-  motif: string;
   nom: string;
   prenom: string | null;
   email: string;
   telephone: string | null;
   message: string | null;
+  adresseBien: string | null;
   updatedAt?: Date;
 };
 
 /** Construit le flux .ics des rendez-vous, pour abonnement depuis Google Agenda. */
 export function buildIcs(
   bookings: BookingPourIcs[],
-  opts: { nomCalendrier: string; motifLabels: Record<string, string> }
+  opts: { nomCalendrier: string }
 ): string {
   const lignes: string[] = [
     "BEGIN:VCALENDAR",
@@ -89,14 +89,13 @@ export function buildIcs(
 
   for (const b of bookings) {
     const qui = `${b.prenom ?? ""} ${b.nom}`.trim();
-    const motif = opts.motifLabels[b.motif] ?? "Rendez-vous";
     const enAttente = b.statut === "EN_ATTENTE";
 
     const description = [
-      `Motif : ${motif}`,
       `Contact : ${qui}`,
       `Email : ${b.email}`,
       b.telephone ? `Téléphone : ${b.telephone}` : null,
+      b.adresseBien ? `Bien : ${b.adresseBien}` : null,
       b.message ? `Message : ${b.message}` : null,
       enAttente ? "⚠ En attente de confirmation du client" : "Confirmé",
     ]
@@ -110,9 +109,13 @@ export function buildIcs(
       `DTSTART:${toIcsDate(b.debut)}`,
       `DTEND:${toIcsDate(b.fin)}`,
       `SUMMARY:${escapeIcs(
-        `${enAttente ? "[À confirmer] " : ""}${motif} — ${qui}`
+        `${enAttente ? "[À confirmer] " : ""}RDV ${qui}${
+          b.adresseBien ? ` — ${b.adresseBien}` : ""
+        }`
       )}`,
       `DESCRIPTION:${escapeIcs(description)}`,
+      // Champ LOCATION : l'agenda propose alors l'itinéraire vers le bien.
+      ...(b.adresseBien ? [`LOCATION:${escapeIcs(b.adresseBien)}`] : []),
       // Une demande non confirmée reste "provisoire" dans l'agenda.
       `STATUS:${enAttente ? "TENTATIVE" : "CONFIRMED"}`,
       "END:VEVENT"

@@ -448,6 +448,12 @@ model Booking {
   telephone String?
   message   String?
 
+  // Bien concerné par le rendez-vous (adresse validée via la Base Adresse
+  // Nationale, d'où le découpage ville / code postal)
+  adresseBien     String?
+  villeBien       String?
+  codePostalBien  String?
+
   // Rattachement CRM
   contactId   String?
   contact     Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)

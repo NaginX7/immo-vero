@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { buildIcs } from "@/lib/ical";
-import { MOTIF_LABELS } from "@/lib/calendar-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -50,18 +49,15 @@ export async function GET(req: NextRequest) {
       debut: b.debut,
       fin: b.fin,
       statut: b.statut,
-      motif: b.motif,
       nom: b.nom,
       prenom: b.prenom,
       email: b.email,
       telephone: b.telephone,
       message: b.message,
+      adresseBien: b.adresseBien,
       updatedAt: b.createdAt,
     })),
-    {
-      nomCalendrier: "Rendez-vous — L'Immobilière de Saverne",
-      motifLabels: MOTIF_LABELS,
-    }
+    { nomCalendrier: "Rendez-vous — L'Immobilière de Saverne" }
   );
 
   return new NextResponse(ics, {

@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { generateSlots, parseHHMM } from "@/lib/slots";
 import { lireAgendaExterne, normaliserUrlIcal } from "@/lib/ical";
-import type { BookingReason } from "@prisma/client";
 import { requireAuth } from "@/lib/auth-guard";
 
 const SETTINGS_ID = "default";
@@ -478,12 +477,19 @@ export async function resolveBookingByToken(
         .update({
           where: { id: booking.evenementId },
           data: {
-            titre: `${
-              REASON_LABELS[booking.motif] ?? "Rendez-vous"
-            } — ${`${booking.prenom ?? ""} ${booking.nom}`.trim()}`,
-            description: `Rendez-vous confirmé par le client${
-              booking.message ? `. Message : ${booking.message}` : "."
-            }`,
+            titre: [
+              `Rendez-vous — ${`${booking.prenom ?? ""} ${booking.nom}`.trim()}`,
+              booking.adresseBien,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            description: [
+              "Rendez-vous confirmé par le client.",
+              booking.adresseBien ? `Bien concerné : ${booking.adresseBien}` : null,
+              booking.message ? `Message : ${booking.message}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
           },
         })
         .catch(() => undefined);
@@ -512,13 +518,6 @@ export async function resolveBookingByToken(
   };
 }
 
-const REASON_LABELS: Record<BookingReason, string> = {
-  ESTIMATION: "Estimation",
-  VISITE: "Visite",
-  CONSEIL: "Conseil",
-  AUTRE: "Rendez-vous",
-};
-
 export type BookResult =
   | { ok: true; contactCreated: boolean }
   | { ok: false; error: string };
@@ -533,7 +532,9 @@ export async function bookSlot(input: {
   prenom?: string;
   email: string;
   telephone?: string;
-  motif?: string;
+  adresseBien?: string;
+  villeBien?: string;
+  codePostalBien?: string;
   message?: string;
 }): Promise<BookResult> {
   const email = input.email?.trim().toLowerCase();
@@ -621,10 +622,12 @@ export async function bookSlot(input: {
     contactCreated = true;
   }
 
-  const motif = (input.motif as BookingReason) || "AUTRE";
-  const titre = `${REASON_LABELS[motif] ?? "Rendez-vous"} — ${
-    `${input.prenom ?? ""} ${nom}`.trim()
-  }`;
+  const adresseBien = input.adresseBien?.trim() || null;
+  const qui = `${input.prenom ?? ""} ${nom}`.trim();
+  // L'adresse du bien devient l'information principale du rendez-vous.
+  const titre = adresseBien
+    ? `Rendez-vous — ${qui} · ${adresseBien}`
+    : `Rendez-vous — ${qui}`;
 
   const quand = formatQuand(target.debut);
 
@@ -633,9 +636,13 @@ export async function bookSlot(input: {
       type: "RDV",
       titre: `${titre} (à confirmer)`,
       date: target.debut,
-      description: input.message?.trim()
-        ? `Demande reçue en ligne, en attente de confirmation du client. Message : ${input.message.trim()}`
-        : "Demande reçue en ligne, en attente de confirmation du client.",
+      description: [
+        "Demande reçue en ligne, en attente de confirmation du client.",
+        adresseBien ? `Bien concerné : ${adresseBien}` : null,
+        input.message?.trim() ? `Message : ${input.message.trim()}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n"),
       contactId,
     },
   });
@@ -646,9 +653,11 @@ export async function bookSlot(input: {
     data: {
       debut: target.debut,
       fin: target.fin,
-      motif,
       statut: "EN_ATTENTE",
       token,
+      adresseBien,
+      villeBien: input.villeBien?.trim() || null,
+      codePostalBien: input.codePostalBien?.trim() || null,
       nom,
       prenom: input.prenom?.trim() || null,
       email,

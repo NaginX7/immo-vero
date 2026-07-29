@@ -5,6 +5,7 @@ import {
   Settings2,
   UserPlus,
   CalendarSync,
+  MapPin,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
@@ -14,7 +15,7 @@ import {
   getIcsUrl,
 } from "@/lib/calendar-actions";
 import { generateSlots } from "@/lib/slots";
-import { MOTIF_LABELS } from "@/lib/calendar-labels";
+
 import { formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { AvailabilityEditor } from "@/components/calendrier/availability-editor";
@@ -155,13 +156,16 @@ export default async function CalendrierPage() {
                       ) : (
                         <Badge variant="success">Confirmé</Badge>
                       )}
-                      <Badge variant="secondary">
-                        {MOTIF_LABELS[b.motif] ?? "Rendez-vous"}
-                      </Badge>
                       <span className="text-sm font-medium">
                         {formatDateTime(b.debut)}
                       </span>
                     </div>
+                    {b.adresseBien && (
+                      <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-navy-800">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-coral-500" />
+                        {b.adresseBien}
+                      </p>
+                    )}
                     <p className="mt-1 text-sm">
                       {`${b.prenom ?? ""} ${b.nom}`.trim()}
                       <span className="text-muted-foreground">
