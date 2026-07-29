@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AlertCircle } from "lucide-react";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { Logo } from "@/components/logo";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +23,8 @@ export default function LoginPage({ searchParams }: { searchParams: SP }) {
     <div className="flex min-h-screen items-center justify-center bg-navy-900 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent text-xl font-bold text-white">
-            IS
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent text-white">
+            <Logo className="h-8 w-8" />
           </div>
           <p className="mt-4 text-lg font-semibold text-white">
             L&apos;Immobilière de Saverne

@@ -49,20 +49,6 @@ export default async function RdvPublicPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* En-tête marque */}
-      <header className="border-b border-navy-800 bg-navy-900 py-6 text-white">
-        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 sm:px-6">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent text-lg font-bold">
-            IS
-          </div>
-          <div>
-            <p className="font-semibold">L&apos;Immobilière de Saverne</p>
-            <p className="text-sm text-navy-300">
-              Véronique Noureddine · Mandataire immobilière
-            </p>
-          </div>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:text-left">
           <div className="h-[168px] w-[168px] shrink-0 overflow-hidden rounded-full shadow-md ring-4 ring-powder-100">
