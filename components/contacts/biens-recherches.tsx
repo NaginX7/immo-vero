@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { CriteresAcquereur } from "@/components/contacts/criteres-acquereur";
 import {
   Dialog,
   DialogContent,
@@ -273,7 +274,7 @@ function AddRechercheDialog({ contactId }: { contactId: string }) {
           <Plus className="h-4 w-4" /> Recherche
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Nouvelle fiche recherche</DialogTitle>
         </DialogHeader>
@@ -291,32 +292,10 @@ function AddRechercheDialog({ contactId }: { contactId: string }) {
             <Label className="text-xs">Intitulé</Label>
             <Input name="titre" placeholder="Maison familiale Saverne" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Type de bien</Label>
-              <Input name="typeBien" placeholder="Maison / Appartement" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Secteur</Label>
-              <Input name="secteur" placeholder="Saverne, Monswiller…" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Budget min (€)</Label>
-              <Input name="budgetMin" type="number" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Budget max (€)</Label>
-              <Input name="budgetMax" type="number" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Surface min (m²)</Label>
-              <Input name="surfaceMin" type="number" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Chambres min</Label>
-              <Input name="nbChambresMin" type="number" />
-            </div>
-          </div>
+
+          {/* Mêmes critères qu'à la création d'un acquéreur */}
+          <CriteresAcquereur avecEntete={false} />
+
           <div className="space-y-1.5">
             <Label className="text-xs">Notes</Label>
             <Textarea name="notes" rows={2} />

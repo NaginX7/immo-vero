@@ -25,17 +25,22 @@ const PRESTATIONS = [
  * Les champs portent le préfixe `r_` pour être distingués de ceux du contact
  * dans le même formulaire.
  */
-export function CriteresAcquereur() {
+export function CriteresAcquereur({
+  avecEntete = true,
+}: {
+  /** Masqué lorsque le contexte l'annonce déjà (ex. « Nouvelle fiche recherche »). */
+  avecEntete?: boolean;
+} = {}) {
   const [avecTerrain, setAvecTerrain] = useState(false);
 
   return (
     <div className="space-y-4 rounded-lg border border-powder-200 bg-powder-50/40 p-4">
-      <div className="flex items-center gap-2">
-        <Search className="h-4 w-4 text-coral-500" />
-        <h4 className="text-sm font-semibold text-navy-800">
-          Sa recherche
-        </h4>
-      </div>
+      {avecEntete && (
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-coral-500" />
+          <h4 className="text-sm font-semibold text-navy-800">Sa recherche</h4>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">

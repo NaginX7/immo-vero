@@ -373,6 +373,46 @@ export async function sendTemplateEmail(input: {
 
 // --- Contacts ------------------------------------------------------------
 
+/**
+ * Critères de recherche saisis via le composant <CriteresAcquereur />.
+ *
+ * Les champs portent le préfixe « r_ » afin de cohabiter avec ceux du contact
+ * dans le formulaire de création. La même lecture sert aux deux points
+ * d'entrée : création d'un acquéreur, et ajout d'une recherche depuis sa fiche.
+ */
+function parseCriteresRecherche(fd: FormData) {
+  return {
+    typeBien: str(fd, "r_typeBien"),
+    secteur: str(fd, "r_secteur"),
+    budgetMin: int(fd, "r_budgetMin"),
+    budgetMax: int(fd, "r_budgetMax"),
+    surfaceMin: int(fd, "r_surfaceMin"),
+    nbPiecesMin: int(fd, "r_nbPiecesMin"),
+    nbChambresMin: int(fd, "r_nbChambresMin"),
+    avecTerrain: bool(fd, "r_avecTerrain"),
+    surfaceTerrainMin: int(fd, "r_surfaceTerrainMin"),
+    garage: bool(fd, "r_garage"),
+    sousSol: bool(fd, "r_sousSol"),
+    dependance: bool(fd, "r_dependance"),
+    piscine: bool(fd, "r_piscine"),
+    historique: str(fd, "r_historique"),
+    modesFinancement: fd
+      .getAll("r_modesFinancement")
+      .filter((v): v is string => typeof v === "string") as ModeFinancement[],
+  };
+}
+
+/** true si au moins un critère a été renseigné. */
+function critereRenseigne(c: ReturnType<typeof parseCriteresRecherche>) {
+  return Object.entries(c).some(([cle, v]) =>
+    cle === "modesFinancement"
+      ? (v as string[]).length > 0
+      : typeof v === "boolean"
+      ? v
+      : v !== null
+  );
+}
+
 function parseRoles(fd: FormData): ContactRole[] {
   const roles = fd.getAll("roles").filter((r) => typeof r === "string") as ContactRole[];
   return roles;
@@ -397,47 +437,15 @@ export async function createContact(fd: FormData) {
     },
   });
 
-  // Acquéreur : les critères saisis dans le même formulaire (préfixe « r_ »)
-  // deviennent sa première fiche recherche.
+  // Acquéreur : les critères saisis dans le même formulaire deviennent sa
+  // première fiche recherche. On ne la crée que si au moins un critère est
+  // renseigné : cocher « acquéreur » sans rien remplir ne doit pas produire
+  // une recherche vide.
   if (contact.roles.includes("ACQUEREUR")) {
-    const criteres = {
-      typeBien: str(fd, "r_typeBien"),
-      secteur: str(fd, "r_secteur"),
-      budgetMin: int(fd, "r_budgetMin"),
-      budgetMax: int(fd, "r_budgetMax"),
-      surfaceMin: int(fd, "r_surfaceMin"),
-      nbPiecesMin: int(fd, "r_nbPiecesMin"),
-      nbChambresMin: int(fd, "r_nbChambresMin"),
-      avecTerrain: bool(fd, "r_avecTerrain"),
-      surfaceTerrainMin: int(fd, "r_surfaceTerrainMin"),
-      garage: bool(fd, "r_garage"),
-      sousSol: bool(fd, "r_sousSol"),
-      dependance: bool(fd, "r_dependance"),
-      piscine: bool(fd, "r_piscine"),
-      historique: str(fd, "r_historique"),
-      modesFinancement: fd
-        .getAll("r_modesFinancement")
-        .filter((v): v is string => typeof v === "string") as ModeFinancement[],
-    };
-
-    // On ne crée la fiche que si au moins un critère est renseigné : cocher
-    // « acquéreur » sans rien remplir ne doit pas produire une recherche vide.
-    const renseignee =
-      Object.entries(criteres).some(([cle, v]) =>
-        cle === "modesFinancement"
-          ? (v as string[]).length > 0
-          : typeof v === "boolean"
-          ? v
-          : v !== null
-      );
-
-    if (renseignee) {
+    const criteres = parseCriteresRecherche(fd);
+    if (critereRenseigne(criteres)) {
       await prisma.recherche.create({
-        data: {
-          contactId: contact.id,
-          titre: "Recherche",
-          ...criteres,
-        },
+        data: { contactId: contact.id, titre: "Recherche", ...criteres },
       });
     }
   }
@@ -484,14 +492,9 @@ export async function addRecherche(fd: FormData) {
   await prisma.recherche.create({
     data: {
       contactId,
-      titre: str(fd, "titre"),
-      typeBien: str(fd, "typeBien"),
-      secteur: str(fd, "secteur"),
-      budgetMin: int(fd, "budgetMin"),
-      budgetMax: int(fd, "budgetMax"),
-      surfaceMin: int(fd, "surfaceMin"),
-      nbChambresMin: int(fd, "nbChambresMin"),
+      titre: str(fd, "titre") ?? "Recherche",
       notes: str(fd, "notes"),
+      ...parseCriteresRecherche(fd),
     },
   });
   revalidatePath(`/contacts/${contactId}`);
