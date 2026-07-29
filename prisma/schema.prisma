@@ -440,6 +440,8 @@ model Booking {
   token       String?       @unique
   confirmedAt DateTime?
   annuleAt    DateTime?
+  /// Horodatage de l'envoi du rappel (48 h avant) — évite tout doublon
+  rappelEnvoyeAt DateTime?
 
   // Coordonnées saisies par le visiteur
   nom       String

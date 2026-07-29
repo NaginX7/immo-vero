@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { generateSlots, parseHHMM } from "@/lib/slots";
 import { lireAgendaExterne, normaliserUrlIcal } from "@/lib/ical";
+import { buildConfirmationEmail, piecesTexte } from "@/lib/emails-rdv";
 import { requireAuth } from "@/lib/auth-guard";
 
 const SETTINGS_ID = "default";
@@ -33,72 +34,6 @@ function formatQuand(d: Date): string {
     dateStyle: "full",
     timeStyle: "short",
   }).format(d);
-}
-
-/** Email HTML de confirmation avec les deux boutons (magic link). */
-function buildConfirmationEmail(p: {
-  prenom: string;
-  quand: string;
-  lienConfirme: string;
-  lienAnnule: string;
-}): string {
-  return `<!doctype html>
-<html lang="fr">
-<body style="margin:0;padding:0;background:#f7f5f3;font-family:Arial,Helvetica,sans-serif;color:#16233f;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f3;padding:24px 0;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #eee3dd;">
-        <tr>
-          <td style="background:#16233f;padding:20px 28px;color:#ffffff;">
-            <div style="font-size:16px;font-weight:bold;">L'Immobilière de Saverne</div>
-            <div style="font-size:13px;color:#a7b6d2;">Véronique Noureddine · Mandataire immobilière</div>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:28px;">
-            <p style="margin:0 0 16px;font-size:15px;">Bonjour ${p.prenom},</p>
-            <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">
-              J'ai bien reçu votre demande de rendez-vous pour&nbsp;:
-            </p>
-            <p style="margin:0 0 24px;padding:14px 16px;background:#fbf3f0;border-left:3px solid #ee6c4d;border-radius:6px;font-size:15px;font-weight:bold;">
-              ${p.quand}
-            </p>
-            <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">
-              Merci de me confirmer votre présence&nbsp;:
-            </p>
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 8px;">
-              <tr>
-                <td style="padding-right:10px;">
-                  <a href="${p.lienConfirme}"
-                     style="display:inline-block;padding:13px 26px;background:#ee6c4d;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:bold;">
-                    Je confirme
-                  </a>
-                </td>
-                <td>
-                  <a href="${p.lienAnnule}"
-                     style="display:inline-block;padding:13px 26px;background:#ffffff;color:#16233f;text-decoration:none;border:1px solid #d9d2cc;border-radius:8px;font-size:15px;font-weight:bold;">
-                    J'annule
-                  </a>
-                </td>
-              </tr>
-            </table>
-            <p style="margin:24px 0 0;font-size:13px;color:#6b7280;line-height:1.6;">
-              Sans confirmation de votre part, le créneau pourra être proposé à
-              une autre personne.
-            </p>
-            <p style="margin:24px 0 0;font-size:15px;">
-              À très bientôt,<br />
-              <strong>Véronique Noureddine</strong><br />
-              L'Immobilière de Saverne
-            </p>
-          </td>
-        </tr>
-      </table>
-      <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;">L'Immobilière de Saverne · Réseau BSK · Saverne (67700)</p>
-    </td></tr>
-  </table>
-</body>
-</html>`;
 }
 
 /** Réglages du calendrier, créés à la volée si absents. */
@@ -684,11 +619,19 @@ Merci de confirmer votre présence :
 • Je confirme : ${lienConfirme}
 • J'annule : ${lienAnnule}
 
+POUR PRÉPARER NOTRE RENDEZ-VOUS
+Merci de réunir si possible les documents suivants :
+${piecesTexte()}
+
+Si l'un d'eux vous manque, ce n'est pas bloquant : nous ferons le point
+ensemble sur place.
+
 À très bientôt,
 Véronique Noureddine / L'Immobilière de Saverne`,
     html: buildConfirmationEmail({
       prenom: input.prenom?.trim() || nom,
       quand,
+      adresseBien,
       lienConfirme,
       lienAnnule,
     }),
