@@ -21,10 +21,12 @@ import {
 export function AddEchangeDialog({
   contactId,
   bienId,
+  partenaireId,
   label = "Ajouter un échange",
 }: {
   contactId?: string;
   bienId?: string;
+  partenaireId?: string;
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -52,6 +54,9 @@ export function AddEchangeDialog({
         >
           {contactId && <input type="hidden" name="contactId" value={contactId} />}
           {bienId && <input type="hidden" name="bienId" value={bienId} />}
+          {partenaireId && (
+            <input type="hidden" name="partenaireId" value={partenaireId} />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

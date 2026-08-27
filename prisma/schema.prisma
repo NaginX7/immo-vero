@@ -312,6 +312,7 @@ model Partenaire {
   nbAffaires Int           @default(0) // compteur d'affaires traitées ensemble
 
   evenements Evenement[]
+  echanges   Echange[]
 }
 
 /// Fait daté structuré du dossier (timeline)
@@ -351,6 +352,9 @@ model Echange {
   contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
   bienId    String?
   bien      Bien?    @relation(fields: [bienId], references: [id], onDelete: SetNull)
+  /// Un échange peut aussi concerner un partenaire (notaire, diagnostiqueur…)
+  partenaireId String?
+  partenaire   Partenaire? @relation(fields: [partenaireId], references: [id], onDelete: SetNull)
 
   // Préparation Brevo (non connecté en v0)
   templateId  String?
@@ -359,6 +363,7 @@ model Echange {
 
   @@index([contactId])
   @@index([bienId])
+  @@index([partenaireId])
 }
 
 /// Document de la checklist / pièce justificative. Rattachable bien, contact, événement.

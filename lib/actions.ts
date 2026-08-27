@@ -318,10 +318,12 @@ export async function addEchange(fd: FormData) {
       direction: str(fd, "direction"),
       contactId: str(fd, "contactId"),
       bienId: str(fd, "bienId"),
+      partenaireId: str(fd, "partenaireId"),
     },
   });
   if (ex.contactId) revalidatePath(`/contacts/${ex.contactId}`);
   if (ex.bienId) revalidatePath(`/biens/${ex.bienId}`);
+  if (ex.partenaireId) revalidatePath(`/partenaires/${ex.partenaireId}`);
   revalidatePath("/");
 }
 

@@ -1,5 +1,12 @@
 import { notFound } from "next/navigation";
-import { Phone, Mail, MapPin, Handshake, Building } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Handshake,
+  Building,
+  MessagesSquare,
+} from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { deletePartenaire } from "@/lib/actions";
@@ -7,7 +14,8 @@ import { PARTENAIRE_TYPE_LABELS, PARTENAIRE_EVENT_TYPES } from "@/lib/labels";
 import { PageHeader } from "@/components/layout/page-header";
 import { PartenaireFormDialog } from "@/components/partenaires/partenaire-form-dialog";
 import { AddEvenementDialog } from "@/components/timeline/add-evenement-dialog";
-import { EvenementList } from "@/components/timeline/lists";
+import { AddEchangeDialog } from "@/components/timeline/add-echange-dialog";
+import { EvenementList, EchangeList } from "@/components/timeline/lists";
 import { DeleteButton } from "@/components/delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +33,10 @@ export default async function PartenaireDetailPage({
     where: { id: params.id },
     include: {
       evenements: {
+        orderBy: { date: "desc" },
+        include: { bien: true, contact: true },
+      },
+      echanges: {
         orderBy: { date: "desc" },
         include: { bien: true, contact: true },
       },
@@ -119,6 +131,28 @@ export default async function PartenaireDetailPage({
             </CardHeader>
             <CardContent>
               <EvenementList events={partenaire.evenements} />
+            </CardContent>
+          </Card>
+
+          {/* Historique des emails et appels */}
+          <Card className="mt-6">
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessagesSquare className="h-4 w-4 text-coral-500" />
+                Échanges
+                {partenaire.echanges.length > 0 && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                    {partenaire.echanges.length}
+                  </span>
+                )}
+              </CardTitle>
+              <AddEchangeDialog
+                partenaireId={partenaire.id}
+                label="Échange"
+              />
+            </CardHeader>
+            <CardContent>
+              <EchangeList echanges={partenaire.echanges} />
             </CardContent>
           </Card>
         </div>
