@@ -5,6 +5,7 @@ import {
   Phone,
   StickyNote,
   CalendarDays,
+  ChevronRight,
 } from "lucide-react";
 import type { Echange, Evenement, ExchangeType } from "@prisma/client";
 
@@ -78,6 +79,19 @@ type EchangeWithLinks = Echange & {
   contact?: { id: string; nom: string; prenom: string | null } | null;
 };
 
+/**
+ * Sépare l'objet du corps. Les échanges importés depuis Gmail commencent par
+ * « Objet : … », suivi d'une ligne vide puis de l'extrait ; les notes saisies
+ * à la main n'ont pas d'objet, on prend alors leur première ligne.
+ */
+function decouperEchange(contenu: string) {
+  const saut = contenu.indexOf("\n");
+  const premiere = (saut === -1 ? contenu : contenu.slice(0, saut)).trim();
+  const reste = saut === -1 ? "" : contenu.slice(saut + 1).trim();
+  const objet = premiere.replace(/^Objet\s*:\s*/i, "");
+  return { objet: objet || "(sans objet)", corps: reste };
+}
+
 export function EchangeList({ echanges }: { echanges: EchangeWithLinks[] }) {
   if (echanges.length === 0) {
     return (
@@ -90,37 +104,50 @@ export function EchangeList({ echanges }: { echanges: EchangeWithLinks[] }) {
     <ul className="space-y-2">
       {echanges.map((ex) => {
         const Icon = exchangeIcon[ex.type];
+        const { objet, corps } = decouperEchange(ex.contenu);
         return (
-          <li
-            key={ex.id}
-            className="flex items-start gap-3 rounded-lg border border-border p-3"
-          >
-            <div
-              className={cn(
-                "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                ex.type === "NOTE"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-navy-50 text-navy-600"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium">
-                  {EXCHANGE_TYPE_LABELS[ex.type]}
-                </span>
-                {ex.direction && (
-                  <Badge variant="outline" className="text-[10px]">
-                    {ex.direction}
-                  </Badge>
+          <li key={ex.id}>
+            {/* <details> plutôt qu'un état React : le repli reste natif, donc
+                utilisable dans un composant serveur et sans JavaScript. */}
+            <details className="group rounded-lg border border-border">
+              <summary className="flex cursor-pointer list-none items-center gap-3 p-3 hover:bg-muted/50 [&::-webkit-details-marker]:hidden">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                    ex.type === "NOTE"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-navy-50 text-navy-600"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  {ex.direction ? (
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {ex.direction}
+                    </Badge>
+                  ) : (
+                    <span className="shrink-0 text-xs font-medium">
+                      {EXCHANGE_TYPE_LABELS[ex.type]}
+                    </span>
+                  )}
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatDateShort(ex.date)}
+                  </span>
+                  <span className="truncate text-sm">{objet}</span>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="border-t border-border px-3 py-2 pl-14">
+                {corps ? (
+                  <p className="whitespace-pre-wrap text-sm">{corps}</p>
+                ) : (
+                  <p className="text-sm italic text-muted-foreground">
+                    Aucun contenu enregistré pour cet échange.
+                  </p>
                 )}
-                <span className="text-xs text-muted-foreground">
-                  {formatDateShort(ex.date)}
-                </span>
               </div>
-              <p className="mt-0.5 whitespace-pre-wrap text-sm">{ex.contenu}</p>
-            </div>
+            </details>
           </li>
         );
       })}
