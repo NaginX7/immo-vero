@@ -14,6 +14,7 @@ import {
   type ContactLite,
   type BienContext,
 } from "@/components/email/send-email-dialog";
+import { TemplateEditorDialog } from "@/components/templates/template-editor-dialog";
 
 /** Découpe le texte en segments texte / variables {…} pour la coloration. */
 function renderWithVars(text: string) {
@@ -100,6 +101,7 @@ export function TemplateCard({
               </>
             )}
           </Button>
+          <TemplateEditorDialog template={template} />
           {isEmail && (
             <SendEmailDialog
               emailTemplates={emailTemplates}

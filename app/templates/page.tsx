@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { TEMPLATE_CATEGORY_LABELS } from "@/lib/labels";
 import { PageHeader } from "@/components/layout/page-header";
 import { TemplateCard } from "@/components/templates/template-card";
+import { TemplateEditorDialog } from "@/components/templates/template-editor-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import type { TemplateCategory } from "@prisma/client";
 import { requireAuth } from "@/lib/auth-guard";
@@ -41,9 +42,15 @@ export default async function TemplatesPage() {
     }),
   ]);
 
-  const emailTemplates = templates
-    .filter((t) => t.canal === "EMAIL")
-    .map((t) => ({ id: t.id, nom: t.nom, objet: t.objet, corps: t.corps }));
+  // Seuls les templates email sont gérés dans cet onglet (les SMS ont été retirés).
+  const emailTemplateRows = templates.filter((t) => t.canal === "EMAIL");
+
+  const emailTemplates = emailTemplateRows.map((t) => ({
+    id: t.id,
+    nom: t.nom,
+    objet: t.objet,
+    corps: t.corps,
+  }));
 
   const emailBiens = biens.map((b) => ({
     id: b.id,
@@ -55,15 +62,17 @@ export default async function TemplatesPage() {
 
   const byCategory = CATEGORY_ORDER.map((cat) => ({
     category: cat,
-    items: templates.filter((t) => t.categorie === cat),
+    items: emailTemplateRows.filter((t) => t.categorie === cat),
   })).filter((g) => g.items.length > 0);
 
   return (
     <div>
       <PageHeader
         title="Bibliothèque de templates"
-        subtitle="SMS & emails prêts à l'emploi — copier / coller"
-      />
+        subtitle="Templates email — modifiables, avec variables"
+      >
+        <TemplateEditorDialog />
+      </PageHeader>
 
       <Card className="mb-6 border-powder-200 bg-powder-50/50">
         <CardContent className="flex items-start gap-3 p-4 text-sm">
@@ -74,14 +83,15 @@ export default async function TemplatesPage() {
               <span className="rounded bg-powder-100 px-1 font-medium text-coral-600">
                 {"{prénom}"}
               </span>
-              ) sont à remplacer avant envoi. Vouvoiement pour les clients,
-              tutoiement pour le réseau d&apos;apporteurs.
+              ) se remplissent automatiquement à l&apos;envoi quand elles sont
+              reconnues (contact / bien / rendez-vous liés), sinon manuellement.
+              Vouvoiement pour les clients, tutoiement pour le réseau
+              d&apos;apporteurs.
             </p>
             <p className="mt-1 text-xs">
-              Signatures — SMS : «&nbsp;Véronique Noureddine — L&apos;Immobilière&nbsp;»
-              · Email : «&nbsp;Véronique Noureddine / L&apos;Immobilière de
+              Signature : «&nbsp;Véronique Noureddine / L&apos;Immobilière de
               Saverne&nbsp;». Les emails s&apos;envoient directement via Resend
-              (bouton «&nbsp;Envoyer&nbsp;») ; les SMS restent en copier-coller.
+              (bouton «&nbsp;Envoyer&nbsp;»).
             </p>
           </div>
         </CardContent>

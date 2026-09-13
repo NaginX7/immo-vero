@@ -16,6 +16,7 @@ import type {
   ExchangeType,
   PartenaireType,
   PipelineStage,
+  TemplateCategory,
 } from "@prisma/client";
 
 // --- Parsers -------------------------------------------------------------
@@ -575,4 +576,42 @@ export async function deletePartenaire(id: string) {
   await prisma.partenaire.delete({ where: { id } });
   revalidatePath("/partenaires");
   redirect("/partenaires");
+}
+
+// --- Templates -------------------------------------------------------------
+
+export async function createTemplate(fd: FormData) {
+  await requireAuth();
+  await prisma.template.create({
+    data: {
+      nom: reqStr(fd, "nom") || "Nouveau template",
+      categorie: (str(fd, "categorie") as TemplateCategory) ?? "AUTRE",
+      canal: "EMAIL",
+      objet: str(fd, "objet"),
+      corps: reqStr(fd, "corps"),
+      tutoiement: bool(fd, "tutoiement"),
+    },
+  });
+  revalidatePath("/templates");
+}
+
+export async function updateTemplate(id: string, fd: FormData) {
+  await requireAuth();
+  await prisma.template.update({
+    where: { id },
+    data: {
+      nom: reqStr(fd, "nom"),
+      categorie: (str(fd, "categorie") as TemplateCategory) ?? "AUTRE",
+      objet: str(fd, "objet"),
+      corps: reqStr(fd, "corps"),
+      tutoiement: bool(fd, "tutoiement"),
+    },
+  });
+  revalidatePath("/templates");
+}
+
+export async function deleteTemplate(id: string) {
+  await requireAuth();
+  await prisma.template.delete({ where: { id } });
+  revalidatePath("/templates");
 }

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { sendTemplateEmail } from "@/lib/actions";
+import { BIEN_VARS, EVENT_VARS } from "@/lib/template-vars";
 import { formatEuro, formatDateShort } from "@/lib/utils";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,10 +55,6 @@ export type EventContext = {
   date: string; // ISO
   bienId: string | null;
 };
-
-// Variables dérivées d'un bien / d'un événement lié.
-const BIEN_VARS = ["adresse_bien", "ville_bien", "prix", "nb_visites"];
-const EVENT_VARS = ["date_rdv"];
 
 function extractVars(text: string): string[] {
   const set = new Set<string>();
