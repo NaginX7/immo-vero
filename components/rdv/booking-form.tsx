@@ -203,8 +203,8 @@ export function BookingForm({
             <form action={submit} className="mt-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Prénom</Label>
-                  <Input name="prenom" />
+                  <Label className="text-xs">Prénom *</Label>
+                  <Input name="prenom" required />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Nom *</Label>
@@ -216,17 +216,18 @@ export function BookingForm({
                 <Input name="email" type="email" required />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Téléphone</Label>
-                <Input name="telephone" type="tel" />
+                <Label className="text-xs">Téléphone *</Label>
+                <Input name="telephone" type="tel" required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="adresse-bien" className="text-xs">
-                  Adresse du bien
+                  Adresse du bien *
                 </Label>
                 <AddressInput
                   id="adresse-bien"
                   value={adresse}
                   onChange={setAdresse}
+                  required
                 />
                 <p className="text-xs text-muted-foreground">
                   Commencez à saisir l&apos;adresse : les suggestions

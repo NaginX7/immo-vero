@@ -27,11 +27,13 @@ export function AddressInput({
   onChange,
   placeholder = "12 rue des Roses, Saverne",
   id,
+  required,
 }: {
   value: AdresseChoisie | null;
   onChange: (v: AdresseChoisie | null) => void;
   placeholder?: string;
   id?: string;
+  required?: boolean;
 }) {
   const [texte, setTexte] = useState(value?.label ?? "");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -137,6 +139,7 @@ export function AddressInput({
           value={texte}
           autoComplete="off"
           placeholder={placeholder}
+          required={required}
           className="pl-9 pr-9"
           onChange={(e) => {
             const v = e.target.value;
