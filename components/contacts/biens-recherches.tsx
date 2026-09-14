@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Plus, Link2, Search, Trash2, X, Loader2, Home, Wallet } from "lucide-react";
+import {
+  Plus,
+  Link2,
+  Search,
+  Trash2,
+  X,
+  Loader2,
+  Home,
+  Wallet,
+  Handshake,
+} from "lucide-react";
 import type { Bien, Recherche } from "@prisma/client";
 
 import {
@@ -10,6 +20,7 @@ import {
   deleteRecherche,
   linkBienToContact,
   unlinkBienFromContact,
+  removeBienApporteur,
 } from "@/lib/actions";
 import { formatEuro } from "@/lib/utils";
 import { STAGE_LABELS, MODE_FINANCEMENT_LABELS } from "@/lib/labels";
@@ -38,16 +49,57 @@ export function BiensRecherchesTab({
   linkedBiens,
   availableBiens,
   recherches,
+  apporteurBiens,
 }: {
   contactId: string;
   linkedBiens: BienLite[];
   availableBiens: BienLite[];
   recherches: Recherche[];
+  apporteurBiens?: BienLite[];
 }) {
   const [pending, start] = useTransition();
 
   return (
     <div className="space-y-6">
+      {/* Biens où ce contact est apporteur d'affaire (renseigné depuis la fiche bien) */}
+      {apporteurBiens && apporteurBiens.length > 0 && (
+        <div>
+          <h4 className="mb-2 text-sm font-semibold text-navy-800">
+            Biens (apporteur d&apos;affaire)
+          </h4>
+          <ul className="space-y-2">
+            {apporteurBiens.map((b) => (
+              <li
+                key={b.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+              >
+                <Link
+                  href={`/biens/${b.id}`}
+                  className="flex min-w-0 items-center gap-3 hover:text-coral-600"
+                >
+                  <Handshake className="h-4 w-4 shrink-0 text-navy-500" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{b.titre}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {STAGE_LABELS[b.stage]} ·{" "}
+                      {formatEuro(b.prixMandat ?? b.prixEstime)}
+                    </p>
+                  </div>
+                </Link>
+                <button
+                  onClick={() => start(() => removeBienApporteur(b.id))}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  aria-label="Délier l'apporteur"
+                  disabled={pending}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Biens liés */}
       <div>
         <div className="mb-2 flex items-center justify-between">

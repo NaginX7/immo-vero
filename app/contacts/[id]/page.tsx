@@ -67,6 +67,16 @@ export default async function ContactDetailPage({
         },
         recherches: { orderBy: { createdAt: "desc" } },
         biens: true,
+        apporteurPour: {
+          select: {
+            id: true,
+            titre: true,
+            ville: true,
+            stage: true,
+            prixEstime: true,
+            prixMandat: true,
+          },
+        },
         documents: { orderBy: { createdAt: "asc" } },
       },
     }),
@@ -280,6 +290,7 @@ export default async function ContactDetailPage({
                     linkedBiens={linkedBiens}
                     availableBiens={availableBiens}
                     recherches={contact.recherches}
+                    apporteurBiens={contact.apporteurPour}
                   />
                 </TabsContent>
               </Tabs>
