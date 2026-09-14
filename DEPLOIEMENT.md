@@ -106,14 +106,21 @@ Tant que le domaine n'est pas vérifié sur Resend, les emails ne partent que ve
 votre propre adresse (mode test).
 
 1. Sur [resend.com/domains](https://resend.com/domains), ajouter
-   `veronique-immobilier-saverne.fr` et créer les enregistrements DNS demandés
-   (SPF, DKIM) chez le registrar.
-2. Une fois vérifié, mettre à jour sur Vercel :
+   `admin.veronique-immobilier-saverne.fr` et créer les enregistrements DNS
+   demandés (SPF, DKIM) chez le registrar. C'est ce sous-domaine qui est
+   vérifié : l'expéditeur doit en faire partie.
+2. Une fois vérifié, mettre à jour sur Vercel (valeurs saisies **sans
+   guillemets**) :
 
 ```
-RESEND_FROM="Véronique Noureddine <contact@veronique-immobilier-saverne.fr>"
-RESEND_REPLY_TO="v.noureddine@bskimmobilier.com"
+RESEND_FROM     Véronique Noureddine <contact@admin.veronique-immobilier-saverne.fr>
+RESEND_REPLY_TO v.noureddine@bskimmobilier.com
+RESEND_BCC      v.noureddine@bskimmobilier.com
 ```
+
+`RESEND_BCC` reçoit une copie cachée de chaque email envoyé par l'application
+(confirmations, rappels, envois manuels), invisible pour le destinataire.
+Plusieurs adresses possibles, séparées par des virgules.
 
 3. Redéployer (Vercel → Deployments → Redeploy) pour appliquer.
 
