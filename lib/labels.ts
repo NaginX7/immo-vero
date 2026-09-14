@@ -181,9 +181,23 @@ export const TRACFIN_DOC_TYPES: DocType[] = [
   // Côté vendeur (fiche bien)
   "TITRE_PROPRIETE",
   "TAXE_FONCIERE",
+  "MODE_FINANCEMENT",
   // Côté personne (fiche contact) — l'origine des fonds concerne l'acquéreur
   "PIECE_IDENTITE",
   "ORIGINE_FONDS",
+];
+
+/**
+ * Ordre d'affichage fixe de la checklist documentaire d'un bien : les pièces
+ * TRACFIN d'abord, puis le reste dans un ordre stable. Indépendant de l'ordre
+ * de création en base, pour que la liste ne bouge pas quand on change un statut.
+ */
+export const BIEN_DOC_ORDER: DocType[] = [
+  ...TRACFIN_DOC_TYPES.filter(
+    (t) => BIEN_DOC_CHECKLIST.includes(t) || COPRO_DOC_CHECKLIST.includes(t)
+  ),
+  ...BIEN_DOC_CHECKLIST.filter((t) => !TRACFIN_DOC_TYPES.includes(t)),
+  ...COPRO_DOC_CHECKLIST.filter((t) => !TRACFIN_DOC_TYPES.includes(t)),
 ];
 
 export const DOC_STATUS_LABELS: Record<DocStatus, string> = {

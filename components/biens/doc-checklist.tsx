@@ -1,15 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Check, X, MinusCircle, ShieldCheck, Loader2 } from "lucide-react";
 import type { DocStatus, Document } from "@prisma/client";
 
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/utils";
 import { setDocStatus } from "@/lib/actions";
-import { DOC_STATUS_LABELS } from "@/lib/labels";
+import { DOC_STATUS_LABELS, BIEN_DOC_ORDER } from "@/lib/labels";
 import { TRACFIN_DOC_TYPES } from "@/lib/labels";
 import { docStats } from "@/lib/domain";
+
+/**
+ * Ordre fixe (TRACFIN d'abord) au lieu de l'ordre renvoyé par la base, qui
+ * n'est pas stable : les pièces d'une checklist sont créées dans la même
+ * transaction (même `createdAt`), donc leur ordre pouvait changer d'un
+ * chargement à l'autre, y compris après un simple changement de statut.
+ */
+function sortDocs(documents: Document[]): Document[] {
+  return [...documents].sort((a, b) => {
+    const ra = BIEN_DOC_ORDER.indexOf(a.type);
+    const rb = BIEN_DOC_ORDER.indexOf(b.type);
+    const ia = ra === -1 ? BIEN_DOC_ORDER.length : ra;
+    const ib = rb === -1 ? BIEN_DOC_ORDER.length : rb;
+    if (ia !== ib) return ia - ib;
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  });
+}
 
 const STATUS_ORDER: DocStatus[] = ["MANQUANT", "RECU", "NON_APPLICABLE"];
 
@@ -55,6 +72,7 @@ function StatusButton({ doc }: { doc: Document }) {
 
 export function DocChecklist({ documents }: { documents: Document[] }) {
   const stats = docStats(documents);
+  const sorted = useMemo(() => sortDocs(documents), [documents]);
 
   return (
     <div>
@@ -74,7 +92,7 @@ export function DocChecklist({ documents }: { documents: Document[] }) {
       </div>
 
       <ul className="divide-y divide-border rounded-lg border border-border">
-        {documents.map((doc) => {
+        {sorted.map((doc) => {
           const isTracfin = TRACFIN_DOC_TYPES.includes(doc.type);
           return (
             <li
