@@ -17,6 +17,7 @@ import { StageSelect } from "@/components/biens/stage-select";
 import { BienFormDialog } from "@/components/biens/bien-form-dialog";
 import { DocChecklist } from "@/components/biens/doc-checklist";
 import { PiecesEditor } from "@/components/biens/pieces-editor";
+import { ApporteurBlock } from "@/components/biens/apporteur-block";
 import {
   AcheteursCompatibles,
   type AcheteurMatch,
@@ -56,6 +57,9 @@ export default async function BienDetailPage({
       documents: { orderBy: { createdAt: "asc" } },
       pieces: { orderBy: { ordre: "asc" } },
       proprietaires: true,
+      apporteur: {
+        select: { id: true, nom: true, prenom: true, telephone: true, email: true },
+      },
       evenements: {
         orderBy: { date: "desc" },
         include: { contact: true, bien: true },
@@ -77,6 +81,12 @@ export default async function BienDetailPage({
     where: { type: "NOTAIRE" },
     select: { id: true, nom: true, societe: true, telephone: true, email: true },
     orderBy: { nom: "asc" },
+  });
+
+  // Contacts proposés pour désigner l'apporteur d'affaire
+  const contactsPourApporteur = await prisma.contact.findMany({
+    select: { id: true, nom: true, prenom: true, telephone: true, email: true },
+    orderBy: [{ nom: "asc" }, { prenom: "asc" }],
   });
 
   // --- Acheteurs compatibles ---------------------------------------------
@@ -353,6 +363,20 @@ export default async function BienDetailPage({
                   </div>
                 </Link>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Apporteur d'affaire */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Apporteur d&apos;affaire</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ApporteurBlock
+                bienId={bien.id}
+                apporteur={bien.apporteur}
+                contacts={contactsPourApporteur}
+              />
             </CardContent>
           </Card>
         </div>

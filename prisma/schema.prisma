@@ -207,6 +207,11 @@ model Bien {
 
   notes String? // historique / notes libres
 
+  // Apporteur d'affaire (facultatif, un seul contact) — renseigné uniquement
+  // depuis la fiche bien, jamais à la création.
+  apporteurId String?
+  apporteur   Contact?        @relation("BienApporteur", fields: [apporteurId], references: [id], onDelete: SetNull)
+
   // Relations
   proprietaires Contact[]       @relation("BienProprietaires")
   pieces        PieceSurface[]
@@ -215,6 +220,7 @@ model Bien {
   echanges      Echange[]
 
   @@index([stage])
+  @@index([apporteurId])
 }
 
 /// Détail des surfaces par pièce (liste dynamique dans la fiche bien)
@@ -248,11 +254,12 @@ model Contact {
   notes            String?
 
   // Relations
-  biens      Bien[]      @relation("BienProprietaires")
-  evenements Evenement[]
-  echanges   Echange[]
-  documents  Document[]
-  recherches Recherche[]
+  biens        Bien[]      @relation("BienProprietaires")
+  apporteurPour Bien[]     @relation("BienApporteur")
+  evenements   Evenement[]
+  echanges     Echange[]
+  documents    Document[]
+  recherches   Recherche[]
   bookings   Booking[]
 }
 

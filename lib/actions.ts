@@ -510,6 +510,24 @@ export async function deleteRecherche(id: string, contactId: string) {
 }
 
 /** Lie un bien existant à un contact (propriétaire). */
+export async function setBienApporteur(bienId: string, contactId: string) {
+  await requireAuth();
+  await prisma.bien.update({
+    where: { id: bienId },
+    data: { apporteurId: contactId },
+  });
+  revalidatePath(`/biens/${bienId}`);
+}
+
+export async function removeBienApporteur(bienId: string) {
+  await requireAuth();
+  await prisma.bien.update({
+    where: { id: bienId },
+    data: { apporteurId: null },
+  });
+  revalidatePath(`/biens/${bienId}`);
+}
+
 export async function linkBienToContact(contactId: string, bienId: string) {
   await requireAuth();
   await prisma.contact.update({
