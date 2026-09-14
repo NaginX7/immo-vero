@@ -54,7 +54,10 @@ export default async function BienDetailPage({
   const bien = await prisma.bien.findUnique({
     where: { id: params.id },
     include: {
-      documents: { orderBy: { createdAt: "asc" } },
+      documents: {
+        orderBy: { createdAt: "asc" },
+        include: { fichiers: { orderBy: { createdAt: "asc" } } },
+      },
       pieces: { orderBy: { ordre: "asc" } },
       proprietaires: true,
       apporteur: {
@@ -331,8 +334,8 @@ export default async function BienDetailPage({
             <CardContent>
               <DocChecklist documents={bien.documents} />
               <p className="mt-3 text-xs text-muted-foreground">
-                Cliquez sur un statut pour le faire évoluer (manquant → reçu →
-                non applicable).
+                Joignez le fichier d&apos;une pièce pour la passer en « Reçu »,
+                ou marquez-la « Non applicable ».
               </p>
             </CardContent>
           </Card>

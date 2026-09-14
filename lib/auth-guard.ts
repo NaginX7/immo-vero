@@ -13,19 +13,22 @@ import { COOKIE_NAME, signingSecret, verifySessionValue } from "@/lib/auth";
  * À appeler en première ligne de chaque page et de chaque action réservées.
  */
 export async function requireAuth(): Promise<void> {
-  const password = process.env.APP_PASSWORD ?? "";
-
   // Aucun mot de passe défini :
   //  - en développement local → accès direct (confort)
   //  - en production → accès BLOQUÉ, on n'expose jamais les données par défaut
-  if (password === "") {
-    if (process.env.NODE_ENV !== "production") return;
+  if ((process.env.APP_PASSWORD ?? "") === "" && process.env.NODE_ENV === "production") {
     redirect("/login?config=manquante");
   }
+  if (!(await isAuthenticated())) redirect("/login");
+}
 
-  const valide = await verifySessionValue(
-    cookies().get(COOKIE_NAME)?.value,
-    signingSecret()
-  );
-  if (!valide) redirect("/login");
+/**
+ * Même contrôle que `requireAuth`, sans redirection : pour les routes d'API,
+ * qui doivent répondre 401 plutôt que renvoyer vers la page de connexion.
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  if ((process.env.APP_PASSWORD ?? "") === "") {
+    return process.env.NODE_ENV !== "production";
+  }
+  return verifySessionValue(cookies().get(COOKIE_NAME)?.value, signingSecret());
 }

@@ -60,25 +60,19 @@ export function AddDocumentDialog({
         >
           {contactId && <input type="hidden" name="contactId" value={contactId} />}
           {bienId && <input type="hidden" name="bienId" value={bienId} />}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Type</Label>
-              <NativeSelect name="type" defaultValue={types[0]}>
-                {types.map((t) => (
-                  <option key={t} value={t}>
-                    {DOC_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </NativeSelect>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Statut</Label>
-              <NativeSelect name="statut" defaultValue="MANQUANT">
-                <option value="MANQUANT">Manquant</option>
-                <option value="RECU">Reçu</option>
-                <option value="NON_APPLICABLE">Non applicable</option>
-              </NativeSelect>
-            </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Type</Label>
+            <NativeSelect name="type" defaultValue={types[0]}>
+              {types.map((t) => (
+                <option key={t} value={t}>
+                  {DOC_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </NativeSelect>
+            <p className="text-xs text-muted-foreground">
+              La pièce est ajoutée en « Manquant » : joignez ensuite le fichier
+              depuis la liste pour la passer en « Reçu ».
+            </p>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={pending}>

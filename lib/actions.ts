@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { BIEN_DOC_CHECKLIST, COPRO_DOC_CHECKLIST, DOC_TYPE_LABELS } from "@/lib/labels";
 import { requireAuth } from "@/lib/auth-guard";
+import { del, head } from "@vercel/blob";
+import { fichierPrefix } from "@/lib/document-fichiers";
 import type {
   ContactRole,
   DocStatus,
@@ -230,7 +232,12 @@ export async function reorderBiens(
 
 export async function deleteBien(id: string) {
   await requireAuth();
+  const fichiers = await prisma.documentFichier.findMany({
+    where: { document: { bienId: id } },
+    select: { url: true },
+  });
   await prisma.bien.delete({ where: { id } });
+  await supprimerBlobs(fichiers.map((f) => f.url));
   revalidatePath("/biens");
   revalidatePath("/pipeline");
   redirect("/biens");
@@ -238,18 +245,97 @@ export async function deleteBien(id: string) {
 
 // --- Documents (checklist) ----------------------------------------------
 
-export async function setDocStatus(docId: string, statut: DocStatus) {
-  await requireAuth();
-  const doc = await prisma.document.update({
-    where: { id: docId },
-    data: {
-      statut,
-      dateRecu: statut === "RECU" ? new Date() : null,
-    },
-  });
-  if (doc.bienId) revalidatePath(`/biens/${doc.bienId}`);
+// Une pièce est « Manquant » par défaut. Elle ne passe en « Reçu » qu'en y
+// joignant un fichier, et y reste tant qu'il lui en reste au moins un. Sinon,
+// on peut l'écarter en « Non applicable ».
+
+function revalidateDocument(doc: { bienId: string | null; contactId: string | null }) {
+  if (doc.bienId) {
+    revalidatePath(`/biens/${doc.bienId}`);
+    revalidatePath("/biens");
+    revalidatePath("/pipeline");
+  }
   if (doc.contactId) revalidatePath(`/contacts/${doc.contactId}`);
   revalidatePath("/");
+}
+
+/** Supprime des fichiers du store Blob sans bloquer l'action en cas d'échec. */
+async function supprimerBlobs(urls: string[]) {
+  if (urls.length === 0) return;
+  try {
+    await del(urls);
+  } catch (e) {
+    console.error("Suppression Blob impossible", e);
+  }
+}
+
+/** Enregistre un fichier envoyé vers le store Blob et passe la pièce en « Reçu ». */
+export async function attachFichier(documentId: string, pathname: string, nom: string) {
+  await requireAuth();
+  if (!pathname.startsWith(fichierPrefix(documentId))) {
+    throw new Error("Chemin de fichier invalide.");
+  }
+  // Les métadonnées viennent du store, pas du navigateur.
+  const blob = await head(pathname);
+  const doc = await prisma.document.findUniqueOrThrow({ where: { id: documentId } });
+
+  await prisma.$transaction([
+    prisma.documentFichier.create({
+      data: {
+        documentId,
+        nom: nom.slice(0, 255) || "fichier",
+        pathname: blob.pathname,
+        url: blob.url,
+        contentType: blob.contentType,
+        taille: blob.size,
+      },
+    }),
+    prisma.document.update({
+      where: { id: documentId },
+      data: {
+        statut: "RECU",
+        dateRecu: doc.statut === "RECU" && doc.dateRecu ? doc.dateRecu : new Date(),
+      },
+    }),
+  ]);
+  revalidateDocument(doc);
+}
+
+/** Retire un fichier ; la pièce repasse en « Manquant » s'il n'en reste aucun. */
+export async function deleteFichier(fichierId: string) {
+  await requireAuth();
+  const fichier = await prisma.documentFichier.delete({
+    where: { id: fichierId },
+    include: { document: true },
+  });
+  const restants = await prisma.documentFichier.count({
+    where: { documentId: fichier.documentId },
+  });
+  if (restants === 0 && fichier.document.statut === "RECU") {
+    await prisma.document.update({
+      where: { id: fichier.documentId },
+      data: { statut: "MANQUANT", dateRecu: null },
+    });
+  }
+  await supprimerBlobs([fichier.url]);
+  revalidateDocument(fichier.document);
+}
+
+/** Passe une pièce sans fichier en « Non applicable », ou la rétablit en « Manquant ». */
+export async function setDocNonApplicable(documentId: string, nonApplicable: boolean) {
+  await requireAuth();
+  const doc = await prisma.document.findUniqueOrThrow({
+    where: { id: documentId },
+    include: { _count: { select: { fichiers: true } } },
+  });
+  if (doc._count.fichiers > 0) {
+    throw new Error("Retirez d'abord les fichiers joints à cette pièce.");
+  }
+  await prisma.document.update({
+    where: { id: documentId },
+    data: { statut: nonApplicable ? "NON_APPLICABLE" : "MANQUANT", dateRecu: null },
+  });
+  revalidateDocument(doc);
 }
 
 export async function addDocument(fd: FormData) {
@@ -259,13 +345,12 @@ export async function addDocument(fd: FormData) {
     data: {
       type,
       libelle: str(fd, "libelle") ?? DOC_TYPE_LABELS[type],
-      statut: (str(fd, "statut") as DocStatus) ?? "MANQUANT",
+      statut: "MANQUANT",
       bienId: str(fd, "bienId"),
       contactId: str(fd, "contactId"),
     },
   });
-  if (doc.bienId) revalidatePath(`/biens/${doc.bienId}`);
-  if (doc.contactId) revalidatePath(`/contacts/${doc.contactId}`);
+  revalidateDocument(doc);
 }
 
 // --- Pièces (surfaces) ---------------------------------------------------
@@ -487,7 +572,12 @@ export async function updateContact(id: string, fd: FormData) {
 
 export async function deleteContact(id: string) {
   await requireAuth();
+  const fichiers = await prisma.documentFichier.findMany({
+    where: { document: { contactId: id } },
+    select: { url: true },
+  });
   await prisma.contact.delete({ where: { id } });
+  await supprimerBlobs(fichiers.map((f) => f.url));
   revalidatePath("/contacts");
   redirect("/contacts");
 }

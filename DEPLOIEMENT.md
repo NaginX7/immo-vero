@@ -54,6 +54,18 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 > et affiche un message de configuration : elle ne s'ouvre jamais au public par
 > accident.
 
+### Stockage des pièces jointes (Vercel Blob)
+
+Les fichiers joints à la checklist documentaire (titre de propriété, pièce
+d'identité…) sont stockés dans un store **Vercel Blob privé** : ils ne sont
+lisibles qu'à travers l'application, après connexion.
+
+1. Dans le projet Vercel, onglet **Storage** → **Create Database** → **Blob**.
+2. Choisir l'accès **Private**, puis connecter le store au projet (tous les
+   environnements). Vercel ajoute seul la variable `BLOB_READ_WRITE_TOKEN`.
+3. Pour le poste local, copier ce jeton dans `.env` (voir `.env.example`), puis
+   redéployer pour que la variable soit prise en compte.
+
 ---
 
 ## 3. Brancher le domaine

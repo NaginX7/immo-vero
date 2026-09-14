@@ -392,8 +392,27 @@ model Document {
   evenementId String?
   evenement   Evenement? @relation(fields: [evenementId], references: [id], onDelete: SetNull)
 
+  fichiers DocumentFichier[]
+
   @@index([bienId])
   @@index([contactId])
+}
+
+/// Fichier joint à une pièce, stocké dans le store Vercel Blob privé.
+/// Une pièce est « Reçu » tant qu'elle a au moins un fichier.
+model DocumentFichier {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  nom         String // nom du fichier tel qu'importé
+  pathname    String // chemin dans le store Blob
+  url         String
+  contentType String?
+  taille      Int // octets
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
 }
 
 model Template {

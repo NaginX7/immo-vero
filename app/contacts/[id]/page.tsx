@@ -77,7 +77,10 @@ export default async function ContactDetailPage({
             prixMandat: true,
           },
         },
-        documents: { orderBy: { createdAt: "asc" } },
+        documents: {
+          orderBy: { createdAt: "asc" },
+          include: { fichiers: { orderBy: { createdAt: "asc" } } },
+        },
       },
     }),
     prisma.bien.findMany({
