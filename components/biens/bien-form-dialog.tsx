@@ -182,6 +182,13 @@ export function BienFormDialog({ bien }: { bien?: Bien }) {
                   defaultValue={bien?.prixMandat ?? ""}
                 />
               </Field>
+              <Field label="Prix de vente définitif (€)">
+                <Input
+                  type="number"
+                  name="prixVenteDefinitif"
+                  defaultValue={bien?.prixVenteDefinitif ?? ""}
+                />
+              </Field>
             </div>
           </Section>
 

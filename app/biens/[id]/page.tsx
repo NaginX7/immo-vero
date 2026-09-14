@@ -202,6 +202,10 @@ export default async function BienDetailPage({
                 />
                 <Row label="Prix au mandat" value={formatEuro(bien.prixMandat)} />
                 <Row
+                  label="Prix de vente définitif"
+                  value={formatEuro(bien.prixVenteDefinitif)}
+                />
+                <Row
                   label="Surface habitable"
                   value={bien.surface ? `${bien.surface} m²` : "—"}
                 />

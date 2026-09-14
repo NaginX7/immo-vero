@@ -179,6 +179,7 @@ model Bien {
   // Prix
   prixEstime Int? // estimation
   prixMandat Int? // prix au mandat
+  prixVenteDefinitif Int? // prix de vente définitif
 
   // Caractéristiques
   plans             Boolean? // plans disponibles oui/non
