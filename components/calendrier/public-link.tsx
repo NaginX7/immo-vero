@@ -6,13 +6,14 @@ import { Copy, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function PublicLink() {
-  const [url, setUrl] = useState("/rdv");
+/** `baseUrl` : domaine public de prise de RDV ; à défaut, le domaine courant. */
+export function PublicLink({ baseUrl }: { baseUrl?: string | null }) {
+  const [url, setUrl] = useState(baseUrl ? `${baseUrl}/rdv` : "/rdv");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setUrl(`${window.location.origin}/rdv`);
-  }, []);
+    if (!baseUrl) setUrl(`${window.location.origin}/rdv`);
+  }, [baseUrl]);
 
   async function copy() {
     try {
@@ -39,7 +40,7 @@ export function PublicLink() {
         )}
       </Button>
       <Button variant="ghost" asChild>
-        <a href="/rdv" target="_blank" rel="noopener noreferrer">
+        <a href={url} target="_blank" rel="noopener noreferrer">
           <ExternalLink className="h-4 w-4" /> Aperçu
         </a>
       </Button>

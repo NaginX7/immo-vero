@@ -29,6 +29,12 @@ function getBaseUrl(): string {
   return `${proto}://${host}`;
 }
 
+/** URL de base des liens de rendez-vous envoyés aux clients (domaine public). */
+function getPublicUrl(): string {
+  const fromEnv = process.env.PUBLIC_URL?.trim();
+  return fromEnv ? fromEnv.replace(/\/+$/, "") : getBaseUrl();
+}
+
 function formatQuand(d: Date): string {
   return new Intl.DateTimeFormat("fr-FR", {
     dateStyle: "full",
@@ -604,7 +610,7 @@ export async function bookSlot(input: {
   });
 
   // Magic link de confirmation (silencieux si Resend n'est pas configuré)
-  const base = getBaseUrl();
+  const base = getPublicUrl();
   const lienConfirme = `${base}/rdv/confirmation?token=${token}&action=confirmer`;
   const lienAnnule = `${base}/rdv/confirmation?token=${token}&action=annuler`;
 

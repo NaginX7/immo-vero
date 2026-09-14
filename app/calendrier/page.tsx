@@ -87,7 +87,9 @@ export default async function CalendrierPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <PublicLink />
+          <PublicLink
+            baseUrl={process.env.PUBLIC_URL?.trim().replace(/\/+$/, "") || null}
+          />
           <p className="text-xs text-muted-foreground">
             Partagez ce lien : vos clients choisissent un créneau libre et le
             rendez-vous arrive directement dans le CRM.{" "}

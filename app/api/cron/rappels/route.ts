@@ -38,8 +38,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
+  // Les liens des rappels pointent vers le domaine public de prise de RDV.
   const base =
-    process.env.APP_URL?.replace(/\/+$/, "") ??
+    (process.env.PUBLIC_URL || process.env.APP_URL)?.trim().replace(/\/+$/, "") ??
     `https://${req.headers.get("host") ?? "localhost:3000"}`;
 
   const resultat = await envoyerRappels(base);

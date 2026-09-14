@@ -41,6 +41,7 @@ son compte. (Si aucune fenêtre n'apparaît, installer
 | `APP_PASSWORD`   | le mot de passe d'accès au CRM — **obligatoire**                   |
 | `AUTH_SECRET`    | chaîne aléatoire (voir ci-dessous)                                 |
 | `APP_URL`        | `https://admin.veronique-immobilier-saverne.fr`                    |
+| `PUBLIC_URL`     | `https://veronique-immobilier-saverne.fr` (voir §3)                |
 | `RESEND_API_KEY` | la clé Resend                                                      |
 | `RESEND_FROM`    | expéditeur des emails (voir §4)                                    |
 
@@ -82,6 +83,20 @@ Vercel indique alors l'enregistrement DNS à créer chez le registrar du domaine
 
 La propagation prend de quelques minutes à quelques heures. Le certificat HTTPS
 est émis automatiquement par Vercel.
+
+### Domaine public de prise de rendez-vous
+
+La page publique de rendez-vous est servie sur
+`https://veronique-immobilier-saverne.fr/rdv`, par le même déploiement :
+
+1. **Settings → Domains → Add** : ajouter `veronique-immobilier-saverne.fr`, puis
+   `www.veronique-immobilier-saverne.fr` en redirection vers le premier.
+2. Ajouter la variable `PUBLIC_URL` = `https://veronique-immobilier-saverne.fr`
+   (Production, **sans guillemets**), puis redéployer : elle est lue au build.
+
+Une fois `PUBLIC_URL` définie, le domaine public n'expose que `/rdv` (son
+accueil y mène, le reste renvoie vers l'espace de gestion) et les liens `/rdv`
+du domaine admin, y compris ceux des emails déjà envoyés, y sont redirigés.
 
 ---
 
