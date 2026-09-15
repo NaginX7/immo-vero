@@ -270,7 +270,7 @@ export function SyncGoogle({
         )}
 
         <form ref={formRef} action={ajouter} className="mt-3 space-y-2">
-          <div className="grid gap-2 sm:grid-cols-[1fr_2fr_auto]">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_2fr_auto]">
             <div className="space-y-1">
               <Label className="text-xs">Nom</Label>
               <Input name="nom" placeholder="Agenda personnel" />

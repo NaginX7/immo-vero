@@ -160,7 +160,7 @@ export default async function ContactDetailPage({
         <DeleteButton action={deleteContact.bind(null, contact.id)} />
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Zone Infos */}
         <div className="space-y-6">
           <Card>
@@ -267,7 +267,7 @@ export default async function ContactDetailPage({
           <Card>
             <CardContent className="p-5">
               <Tabs defaultValue="evenements">
-                <TabsList>
+                <TabsList className="max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <TabsTrigger value="evenements">Événements</TabsTrigger>
                   <TabsTrigger value="echanges">Échanges</TabsTrigger>
                   <TabsTrigger value="biens">Biens & Recherches</TabsTrigger>

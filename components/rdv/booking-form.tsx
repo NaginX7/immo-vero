@@ -128,7 +128,7 @@ export function BookingForm({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       {/* Choix du créneau */}
       <div className="rounded-xl border border-border bg-card p-5">
         <h2 className="flex items-center gap-2 font-semibold text-navy-800">

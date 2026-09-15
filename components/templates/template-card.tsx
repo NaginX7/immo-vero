@@ -124,7 +124,7 @@ export function TemplateCard({
         )}
         <div
           className={cn(
-            "whitespace-pre-wrap rounded-md bg-muted/60 p-3 text-sm leading-relaxed"
+            "whitespace-pre-wrap rounded-md bg-muted/60 p-3 text-sm leading-relaxed [overflow-wrap:anywhere]"
           )}
         >
           {renderWithVars(template.corps)}

@@ -87,7 +87,7 @@ type EchangeWithLinks = Echange & {
  * cette ligne de destinataire reste dans le corps. Les notes saisies à la main
  * n'ont pas d'objet, on prend alors leur première ligne.
  */
-function decouperEchange(contenu: string) {
+export function decouperEchange(contenu: string) {
   const lignes = contenu.split("\n");
   const iObjet = lignes.findIndex((l, i) => i <= 1 && /^Objet\s*:/i.test(l.trim()));
   if (iObjet !== -1) {
@@ -157,7 +157,7 @@ export function EchangeList({ echanges }: { echanges: EchangeWithLinks[] }) {
               </summary>
               <div className="border-t border-border px-3 py-2 pl-14">
                 {corps ? (
-                  <p className="whitespace-pre-wrap text-sm">{corps}</p>
+                  <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{corps}</p>
                 ) : (
                   <p className="text-sm italic text-muted-foreground">
                     Aucun contenu enregistré pour cet échange.

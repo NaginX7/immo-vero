@@ -59,7 +59,7 @@ export default async function PartenaireDetailPage({
         <DeleteButton action={deletePartenaire.bind(null, partenaire.id)} />
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6">
           <Card>
             <CardContent className="p-5">

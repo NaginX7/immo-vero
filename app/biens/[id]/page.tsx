@@ -188,7 +188,7 @@ export default async function BienDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Colonne principale */}
         <div className="space-y-6 lg:col-span-2">
           {/* Caractéristiques */}
@@ -198,7 +198,7 @@ export default async function BienDetailPage({
                 <Building2 className="h-4 w-4 text-navy-500" /> Caractéristiques
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-x-8 sm:grid-cols-2">
+            <CardContent className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
               <div>
                 <Row
                   label="Prix estimé"
@@ -315,7 +315,7 @@ export default async function BienDetailPage({
                 <CardTitle className="text-base">Notes libres</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground [overflow-wrap:anywhere]">
                   {bien.notes}
                 </p>
               </CardContent>

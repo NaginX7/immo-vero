@@ -23,6 +23,7 @@ import { formatDateShort, formatDateTime, cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { decouperEchange } from "@/components/timeline/lists";
 import type { ExchangeType } from "@prisma/client";
 import { requireAuth } from "@/lib/auth-guard";
 
@@ -185,7 +186,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Prochains RDV */}
         <Card>
           <CardHeader>
@@ -290,6 +291,9 @@ export default async function DashboardPage() {
           )}
           {activities.map((ex) => {
             const Icon = exchangeIcon[ex.type];
+            const { objet, corps: texte } = decouperEchange(ex.contenu);
+            // Aperçu : la ligne de destinataire n'apporte rien ici
+            const corps = texte.replace(/^À\s*:[^\n]*\n*/, "");
             return (
               <div
                 key={ex.id}
@@ -299,7 +303,12 @@ export default async function DashboardPage() {
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm">{ex.contenu}</p>
+                  <p className="truncate text-sm font-medium">{objet}</p>
+                  {corps && (
+                    <p className="line-clamp-2 text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                      {corps}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {ex.contact
                       ? `${ex.contact.prenom ?? ""} ${ex.contact.nom}`.trim()

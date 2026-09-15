@@ -110,7 +110,7 @@ export default async function TemplatesPage() {
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-navy-700">
                 {TEMPLATE_CATEGORY_LABELS[group.category]}
               </h2>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {group.items.map((t) => (
                   <TemplateCard
                     key={t.id}

@@ -106,7 +106,7 @@ export function BienFormDialog({ bien }: { bien?: Bien }) {
 
         <form action={action} className="space-y-5">
           <Section title="Identité">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Intitulé *">
                 <Input
                   name="titre"
@@ -137,7 +137,7 @@ export function BienFormDialog({ bien }: { bien?: Bien }) {
           </Section>
 
           <Section title="Localisation">
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
               <div className="sm:col-span-2">
                 <Field label="Adresse">
                   <Input name="adresse" defaultValue={bien?.adresse ?? ""} />
@@ -153,7 +153,7 @@ export function BienFormDialog({ bien }: { bien?: Bien }) {
           </Section>
 
           <Section title="Dates & prix">
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
               <Field label="Date de découverte">
                 <Input
                   type="date"
@@ -193,7 +193,7 @@ export function BienFormDialog({ bien }: { bien?: Bien }) {
           </Section>
 
           <Section title="Caractéristiques">
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
               <Field label="Surface (m²)">
                 <Input type="number" name="surface" defaultValue={bien?.surface ?? ""} />
               </Field>
@@ -239,7 +239,7 @@ export function BienFormDialog({ bien }: { bien?: Bien }) {
           </Section>
 
           <Section title="Construction & équipements">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="Type construction">
                 <Input
                   name="typeConstruction"
@@ -271,7 +271,7 @@ export function BienFormDialog({ bien }: { bien?: Bien }) {
           </Section>
 
           <Section title="Estimation">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Raison de l'estimation">
                 <NativeSelect
                   name="raisonEstimation"
