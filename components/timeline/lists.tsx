@@ -6,12 +6,14 @@ import {
   StickyNote,
   CalendarDays,
   ChevronRight,
+  Pin,
 } from "lucide-react";
 import type { Echange, Evenement, ExchangeType } from "@prisma/client";
 
 import { EVENT_TYPE_LABELS, EXCHANGE_TYPE_LABELS } from "@/lib/labels";
 import { formatDateTime, formatDateShort, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { EchangeActions } from "@/components/timeline/echange-actions";
 
 const exchangeIcon: Record<ExchangeType, typeof Mail> = {
   EMAIL: Mail,
@@ -80,16 +82,22 @@ type EchangeWithLinks = Echange & {
 };
 
 /**
- * Sépare l'objet du corps. Les échanges importés depuis Gmail commencent par
- * « Objet : … », suivi d'une ligne vide puis de l'extrait ; les notes saisies
- * à la main n'ont pas d'objet, on prend alors leur première ligne.
+ * Sépare l'objet du corps. Les emails importés commencent par « Objet : … »,
+ * parfois précédé d'une ligne « À : … » (envois depuis l'outil, import Gmail) ;
+ * cette ligne de destinataire reste dans le corps. Les notes saisies à la main
+ * n'ont pas d'objet, on prend alors leur première ligne.
  */
 function decouperEchange(contenu: string) {
-  const saut = contenu.indexOf("\n");
-  const premiere = (saut === -1 ? contenu : contenu.slice(0, saut)).trim();
-  const reste = saut === -1 ? "" : contenu.slice(saut + 1).trim();
-  const objet = premiere.replace(/^Objet\s*:\s*/i, "");
-  return { objet: objet || "(sans objet)", corps: reste };
+  const lignes = contenu.split("\n");
+  const iObjet = lignes.findIndex((l, i) => i <= 1 && /^Objet\s*:/i.test(l.trim()));
+  if (iObjet !== -1) {
+    const objet = lignes[iObjet].trim().replace(/^Objet\s*:\s*/i, "");
+    const reste = lignes.filter((_, i) => i !== iObjet).join("\n").trim();
+    return { objet: objet || "(sans objet)", corps: reste };
+  }
+  const premiere = (lignes[0] ?? "").trim();
+  const reste = lignes.slice(1).join("\n").trim();
+  return { objet: premiere || "(sans objet)", corps: reste };
 }
 
 export function EchangeList({ echanges }: { echanges: EchangeWithLinks[] }) {
@@ -109,7 +117,12 @@ export function EchangeList({ echanges }: { echanges: EchangeWithLinks[] }) {
           <li key={ex.id}>
             {/* <details> plutôt qu'un état React : le repli reste natif, donc
                 utilisable dans un composant serveur et sans JavaScript. */}
-            <details className="group rounded-lg border border-border">
+            <details
+              className={cn(
+                "group rounded-lg border",
+                ex.epingleAt ? "border-coral-200 bg-powder-50/60" : "border-border"
+              )}
+            >
               <summary className="flex cursor-pointer list-none items-center gap-3 p-3 hover:bg-muted/50 [&::-webkit-details-marker]:hidden">
                 <div
                   className={cn(
@@ -134,8 +147,12 @@ export function EchangeList({ echanges }: { echanges: EchangeWithLinks[] }) {
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatDateShort(ex.date)}
                   </span>
+                  {ex.epingleAt && (
+                    <Pin className="h-3.5 w-3.5 shrink-0 fill-coral-500 text-coral-600" aria-label="Épinglé" />
+                  )}
                   <span className="truncate text-sm">{objet}</span>
                 </div>
+                <EchangeActions id={ex.id} epingle={!!ex.epingleAt} />
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
               </summary>
               <div className="border-t border-border px-3 py-2 pl-14">

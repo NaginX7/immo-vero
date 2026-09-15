@@ -409,6 +409,30 @@ export async function addEchange(fd: FormData) {
   revalidatePath("/");
 }
 
+function revalidateEchange(ex: { contactId: string | null; bienId: string | null; partenaireId: string | null }) {
+  if (ex.contactId) revalidatePath(`/contacts/${ex.contactId}`);
+  if (ex.bienId) revalidatePath(`/biens/${ex.bienId}`);
+  if (ex.partenaireId) revalidatePath(`/partenaires/${ex.partenaireId}`);
+}
+
+export async function deleteEchange(id: string) {
+  await requireAuth();
+  const ex = await prisma.echange.delete({ where: { id } });
+  revalidateEchange(ex);
+  revalidatePath("/");
+}
+
+/** Épingle un échange en tête de liste, ou le désépingle. */
+export async function toggleEpingleEchange(id: string) {
+  await requireAuth();
+  const actuel = await prisma.echange.findUniqueOrThrow({ where: { id }, select: { epingleAt: true } });
+  const ex = await prisma.echange.update({
+    where: { id },
+    data: { epingleAt: actuel.epingleAt ? null : new Date() },
+  });
+  revalidateEchange(ex);
+}
+
 // --- Emails (Resend) -----------------------------------------------------
 
 export type SendEmailResult = { ok: boolean; error?: string };

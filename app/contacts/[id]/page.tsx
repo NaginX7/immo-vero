@@ -67,7 +67,8 @@ export default async function ContactDetailPage({
           include: { bien: true, contact: true },
         },
         echanges: {
-          orderBy: { date: "desc" },
+          // Épinglés en tête (du plus récemment épinglé), puis par date
+          orderBy: [{ epingleAt: { sort: "desc", nulls: "last" } }, { date: "desc" }],
           include: { bien: true, contact: true },
         },
         recherches: { orderBy: { createdAt: "desc" } },

@@ -364,6 +364,8 @@ model Echange {
   date      DateTime     @default(now())
   contenu   String
   direction String? // entrant / sortant
+  /// Date d'épinglage : un échange épinglé reste en tête de la liste.
+  epingleAt DateTime?
 
   contactId String?
   contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
