@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ShieldCheck,
   ShieldAlert,
+  Tags,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,10 @@ import { BiensRecherchesTab } from "@/components/contacts/biens-recherches";
 import { DocChecklist } from "@/components/biens/doc-checklist";
 import { AddDocumentDialog } from "@/components/documents/add-document-dialog";
 import { DeleteButton } from "@/components/delete-button";
+import {
+  ConvertirEnPartenaireButton,
+  SegmentBadge,
+} from "@/components/contacts/conversion-buttons";
 import { AddEvenementDialog } from "@/components/timeline/add-evenement-dialog";
 import { AddEchangeDialog } from "@/components/timeline/add-echange-dialog";
 import { SendEmailDialog } from "@/components/email/send-email-dialog";
@@ -66,6 +71,7 @@ export default async function ContactDetailPage({
           include: { bien: true, contact: true },
         },
         recherches: { orderBy: { createdAt: "desc" } },
+        segments: { select: { id: true, nom: true }, orderBy: { nom: "asc" } },
         biens: true,
         apporteurPour: {
           select: {
@@ -149,6 +155,7 @@ export default async function ContactDetailPage({
     <div>
       <PageHeader title={fullName} backHref="/contacts">
         <ContactFormDialog contact={contact} />
+        <ConvertirEnPartenaireButton contactId={contact.id} />
         <DeleteButton action={deleteContact.bind(null, contact.id)} />
       </PageHeader>
 
@@ -196,6 +203,15 @@ export default async function ContactDetailPage({
                   Fiche créée le {formatDate(contact.createdAt)}
                 </InfoRow>
               </div>
+
+              {contact.segments.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                  <Tags className="h-4 w-4 text-muted-foreground" />
+                  {contact.segments.map((sg) => (
+                    <SegmentBadge key={sg.id} contactId={contact.id} segment={sg} />
+                  ))}
+                </div>
+              )}
 
               {contact.notes && (
                 <p className="mt-4 rounded-md bg-muted p-3 text-sm text-muted-foreground">

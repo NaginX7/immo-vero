@@ -262,6 +262,15 @@ model Contact {
   documents    Document[]
   recherches   Recherche[]
   bookings   Booking[]
+  segments   Segment[]
+}
+
+/// Liste nommée de contacts (ex. « Acquéreurs Saverne »), constituée à la main.
+model Segment {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  nom       String    @unique
+  contacts  Contact[]
 }
 
 /// Critères de recherche d'un acquéreur

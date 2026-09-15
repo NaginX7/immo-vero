@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { BIEN_DOC_CHECKLIST, COPRO_DOC_CHECKLIST, DOC_TYPE_LABELS } from "@/lib/labels";
 import { requireAuth } from "@/lib/auth-guard";
-import { del, head } from "@vercel/blob";
+import { head } from "@vercel/blob";
+import { supprimerBlobs } from "@/lib/blob";
 import { fichierPrefix } from "@/lib/document-fichiers";
 import type {
   ContactRole,
@@ -257,16 +258,6 @@ function revalidateDocument(doc: { bienId: string | null; contactId: string | nu
   }
   if (doc.contactId) revalidatePath(`/contacts/${doc.contactId}`);
   revalidatePath("/");
-}
-
-/** Supprime des fichiers du store Blob sans bloquer l'action en cas d'échec. */
-async function supprimerBlobs(urls: string[]) {
-  if (urls.length === 0) return;
-  try {
-    await del(urls);
-  } catch (e) {
-    console.error("Suppression Blob impossible", e);
-  }
 }
 
 /** Enregistre un fichier envoyé vers le store Blob et passe la pièce en « Reçu ». */

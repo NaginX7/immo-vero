@@ -36,3 +36,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# export d'emails (données clients, plusieurs Go) — ne jamais commiter
+/SENT/

@@ -17,6 +17,7 @@ import { AddEvenementDialog } from "@/components/timeline/add-evenement-dialog";
 import { AddEchangeDialog } from "@/components/timeline/add-echange-dialog";
 import { EvenementList, EchangeList } from "@/components/timeline/lists";
 import { DeleteButton } from "@/components/delete-button";
+import { ConvertirEnContactButton } from "@/components/contacts/conversion-buttons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireAuth } from "@/lib/auth-guard";
@@ -53,6 +54,7 @@ export default async function PartenaireDetailPage({
         backHref="/partenaires"
       >
         <PartenaireFormDialog partenaire={partenaire} />
+        <ConvertirEnContactButton partenaireId={partenaire.id} />
         <DeleteButton action={deletePartenaire.bind(null, partenaire.id)} />
       </PageHeader>
 

@@ -1,16 +1,15 @@
-import Link from "next/link";
-import { Phone, Mail, MapPin } from "lucide-react";
-import type { ContactRole, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { initials } from "@/lib/utils";
+import { contactWhere } from "@/lib/contact-filters";
 import { PageHeader } from "@/components/layout/page-header";
-import { RoleBadge } from "@/components/badges";
 import { ContactFormDialog } from "@/components/contacts/contact-form-dialog";
 import { ContactsFilters } from "@/components/contacts/contacts-filters";
+import { ContactsList } from "@/components/contacts/contacts-list";
 import { Pagination } from "@/components/pagination";
-import { Card, CardContent } from "@/components/ui/card";
 import { requireAuth } from "@/lib/auth-guard";
+import { supprimerSegment } from "@/lib/contact-actions";
+import { DeleteButton } from "@/components/delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -32,27 +31,7 @@ export default async function ContactsPage({
   searchParams: SP;
 }) {
   await requireAuth();
-  const q = one(searchParams.q);
-  const role = one(searchParams.role) as ContactRole | undefined;
-  const ville = one(searchParams.ville);
-  const aBiens = one(searchParams.aBiens);
-  const aRecherche = one(searchParams.aRecherche);
-
-  const where: Prisma.ContactWhereInput = {};
-  if (q) {
-    where.OR = [
-      { nom: { contains: q, mode: "insensitive" } },
-      { prenom: { contains: q, mode: "insensitive" } },
-      { email: { contains: q, mode: "insensitive" } },
-      { telephone: { contains: q, mode: "insensitive" } },
-      { ville: { contains: q, mode: "insensitive" } },
-      { profession: { contains: q, mode: "insensitive" } },
-    ];
-  }
-  if (role) where.roles = { has: role };
-  if (ville) where.ville = ville;
-  if (aBiens) where.biens = { some: {} };
-  if (aRecherche) where.recherches = { some: {} };
+  const where = contactWhere(searchParams);
 
   const sort = one(searchParams.sort);
   const orderBy: Prisma.ContactOrderByWithRelationInput[] =
@@ -64,13 +43,17 @@ export default async function ContactsPage({
       ? [{ nom: "desc" }, { prenom: "desc" }]
       : [{ createdAt: "desc" }];
 
-  const [totalCount, villeRows] = await Promise.all([
+  const [totalCount, villeRows, segments] = await Promise.all([
     prisma.contact.count({ where }),
     prisma.contact.findMany({
       where: { ville: { not: null } },
       select: { ville: true },
       distinct: ["ville"],
       orderBy: { ville: "asc" },
+    }),
+    prisma.segment.findMany({
+      orderBy: { nom: "asc" },
+      select: { id: true, nom: true, _count: { select: { contacts: true } } },
     }),
   ]);
 
@@ -84,8 +67,17 @@ export default async function ContactsPage({
     take: PAGE_SIZE,
     include: {
       _count: { select: { biens: true, recherches: true, echanges: true } },
+      segments: { select: { nom: true }, orderBy: { nom: "asc" } },
     },
   });
+
+  // Filtres actifs, transmis tels quels aux actions « tous les résultats »
+  const filtres: Record<string, string> = {};
+  for (const [k, v] of Object.entries(searchParams)) {
+    const val = one(v);
+    if (val && k !== "page" && k !== "sort") filtres[k] = val;
+  }
+  const segmentActif = segments.find((s) => s.id === filtres.segment);
 
   const villes = villeRows
     .map((v) => v.ville)
@@ -102,74 +94,45 @@ export default async function ContactsPage({
         <ContactFormDialog />
       </PageHeader>
 
-      <ContactsFilters villes={villes} />
+      <ContactsFilters
+        villes={villes}
+        segments={segments.map((s) => ({
+          id: s.id,
+          nom: `${s.nom} (${s._count.contacts})`,
+        }))}
+      />
 
-      {contacts.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            Aucun contact ne correspond à votre recherche.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-          {contacts.map((c) => {
-            const fullName = `${c.prenom ?? ""} ${c.nom}`.trim();
-            return (
-              <Link
-                key={c.id}
-                href={`/contacts/${c.id}`}
-                className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-navy-100 text-sm font-semibold text-navy-700">
-                  {initials(fullName)}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-medium text-navy-800">
-                      {c.civilite ? `${c.civilite} ` : ""}
-                      {fullName}
-                    </p>
-                    <div className="hidden gap-1 sm:flex">
-                      {c.roles.map((r) => (
-                        <RoleBadge key={r} role={r} />
-                      ))}
-                    </div>
-                  </div>
-                  {c.profession && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {c.profession}
-                    </p>
-                  )}
-                </div>
-
-                <div className="hidden shrink-0 items-center gap-6 text-sm text-muted-foreground md:flex">
-                  {c.telephone && (
-                    <span className="flex items-center gap-1.5">
-                      <Phone className="h-3.5 w-3.5" /> {c.telephone}
-                    </span>
-                  )}
-                  {c.email && (
-                    <span className="flex w-52 items-center gap-1.5 truncate">
-                      <Mail className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{c.email}</span>
-                    </span>
-                  )}
-                  {c.ville && (
-                    <span className="flex w-32 items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" /> {c.ville}
-                    </span>
-                  )}
-                </div>
-
-                <div className="hidden shrink-0 text-right text-xs text-muted-foreground xl:block">
-                  {c._count.biens} bien(s) · {c._count.recherches} rech.
-                </div>
-              </Link>
-            );
-          })}
+      {segmentActif && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Segment :</span>
+          <span className="font-medium">{segmentActif.nom}</span>
+          <DeleteButton
+            action={supprimerSegment.bind(null, segmentActif.id)}
+            label="Supprimer le segment"
+            confirmMessage={`Supprimer le segment « ${segmentActif.nom} » ? Les contacts sont conservés.`}
+          />
         </div>
       )}
+
+      <ContactsList
+          contacts={contacts.map((c) => ({
+            id: c.id,
+            civilite: c.civilite,
+            nom: c.nom,
+            prenom: c.prenom,
+            roles: c.roles,
+            profession: c.profession,
+            telephone: c.telephone,
+            email: c.email,
+            ville: c.ville,
+            nbBiens: c._count.biens,
+            nbRecherches: c._count.recherches,
+            segments: c.segments.map((s) => s.nom),
+          }))}
+          totalCount={totalCount}
+          filtres={filtres}
+          segments={segments.map((s) => ({ id: s.id, nom: s.nom }))}
+        />
 
       <Pagination
         basePath="/contacts"

@@ -75,6 +75,9 @@ export default async function BiensPage({
     };
   }
   if (chambresMin != null) where.nbChambres = { gte: chambresMin };
+  const apporteur = one(searchParams.apporteur);
+  if (apporteur === "avec") where.apporteurId = { not: null };
+  if (apporteur === "sans") where.apporteurId = null;
 
   const [biensRaw, villeRows] = await Promise.all([
     prisma.bien.findMany({

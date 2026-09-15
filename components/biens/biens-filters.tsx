@@ -22,6 +22,7 @@ const FILTER_KEYS = [
   "raison",
   "copro",
   "tracfin",
+  "apporteur",
   "prixMin",
   "prixMax",
   "surfaceMin",
@@ -110,7 +111,7 @@ export function BiensFilters({ villes }: { villes: string[] }) {
       <div
         className={cn(
           "grid gap-3 rounded-lg border border-border bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-4",
-          open ? "block" : "hidden"
+          open ? "grid" : "hidden"
         )}
       >
         <div className="space-y-1.5">
@@ -155,6 +156,15 @@ export function BiensFilters({ villes }: { villes: string[] }) {
             <option value="">Toutes</option>
             <option value="oui">Oui</option>
             <option value="non">Non</option>
+          </NativeSelect>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Apporteur d&apos;affaire</Label>
+          <NativeSelect name="apporteur" defaultValue={get("apporteur")}>
+            <option value="">Tous les biens</option>
+            <option value="avec">Avec apporteur</option>
+            <option value="sans">Sans apporteur</option>
           </NativeSelect>
         </div>
 

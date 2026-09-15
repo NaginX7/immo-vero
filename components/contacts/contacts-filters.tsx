@@ -11,9 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 
-const FILTER_KEYS = ["role", "ville", "aBiens", "aRecherche"];
+const FILTER_KEYS = ["role", "ville", "segment", "aBiens", "aRecherche"];
 
-export function ContactsFilters({ villes }: { villes: string[] }) {
+export function ContactsFilters({
+  villes,
+  segments,
+}: {
+  villes: string[];
+  segments: { id: string; nom: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -94,7 +100,7 @@ export function ContactsFilters({ villes }: { villes: string[] }) {
       <div
         className={cn(
           "grid gap-3 rounded-lg border border-border bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-4",
-          open ? "block" : "hidden"
+          open ? "grid" : "hidden"
         )}
       >
         <div className="space-y-1.5">
@@ -116,6 +122,18 @@ export function ContactsFilters({ villes }: { villes: string[] }) {
             {villes.map((v) => (
               <option key={v} value={v}>
                 {v}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Segment</Label>
+          <NativeSelect name="segment" defaultValue={get("segment")}>
+            <option value="">Tous</option>
+            {segments.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nom}
               </option>
             ))}
           </NativeSelect>
