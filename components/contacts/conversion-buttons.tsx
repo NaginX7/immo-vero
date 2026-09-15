@@ -10,6 +10,8 @@ import {
 } from "@/lib/contact-actions";
 import { Button } from "@/components/ui/button";
 
+const ECHEC = "L'opération a échoué. Rechargez la page et réessayez.";
+
 export function ConvertirEnPartenaireButton({ contactId }: { contactId: string }) {
   const [pending, start] = useTransition();
   return (
@@ -20,7 +22,13 @@ export function ConvertirEnPartenaireButton({ contactId }: { contactId: string }
       onClick={() => {
         if (!window.confirm("Convertir ce contact en partenaire ? Ses échanges et événements suivent.")) return;
         start(async () => {
-          const res = await convertirContactEnPartenaire(contactId);
+          let res: Awaited<ReturnType<typeof convertirContactEnPartenaire>>;
+          try {
+            res = await convertirContactEnPartenaire(contactId);
+          } catch {
+            window.alert(ECHEC);
+            return;
+          }
           if (res && !res.ok) {
             window.alert(
               `Conversion impossible. Ce contact a des liens qu'un partenaire ne peut pas garder : ${res.raisons.join(", ")}.`
@@ -44,7 +52,13 @@ export function ConvertirEnContactButton({ partenaireId }: { partenaireId: strin
       disabled={pending}
       onClick={() => {
         if (!window.confirm("Convertir ce partenaire en contact ? Ses échanges et événements suivent.")) return;
-        start(() => convertirPartenaireEnContact(partenaireId));
+        start(async () => {
+          try {
+            await convertirPartenaireEnContact(partenaireId);
+          } catch {
+            window.alert(ECHEC);
+          }
+        });
       }}
     >
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserRound className="h-4 w-4" />}
@@ -67,7 +81,15 @@ export function SegmentBadge({
       <button
         type="button"
         disabled={pending}
-        onClick={() => start(() => retirerDuSegment(contactId, segment.id))}
+        onClick={() =>
+          start(async () => {
+            try {
+              await retirerDuSegment(contactId, segment.id);
+            } catch {
+              window.alert(ECHEC);
+            }
+          })
+        }
         className="rounded-full p-0.5 hover:bg-powder-200 disabled:opacity-50"
         title="Retirer de ce segment"
         aria-label={`Retirer du segment ${segment.nom}`}

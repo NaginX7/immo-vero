@@ -52,6 +52,8 @@ export type ContactLigne = {
   segments: string[];
 };
 
+const ECHEC = "L'opération a échoué, rien n'a été modifié ou seulement en partie. Rechargez la page et réessayez.";
+
 const checkboxCls = "h-4 w-4 shrink-0 cursor-pointer accent-[hsl(var(--accent))]";
 
 export function ContactsList({
@@ -70,7 +72,11 @@ export function ContactsList({
   // true : l'action porte sur tous les contacts du filtre, pas seulement la page
   const [tousResultats, setTousResultats] = useState(false);
   const [dialog, setDialog] = useState<"segment" | null>(null);
-  const [message, setMessage] = useState<{ texte: string; ignores?: ConversionIgnoree[] } | null>(null);
+  const [message, setMessage] = useState<{
+    texte: string;
+    ignores?: ConversionIgnoree[];
+    erreur?: boolean;
+  } | null>(null);
   const [pending, start] = useTransition();
 
   // La sélection se conserve d'une page à l'autre, mais pas quand les filtres changent.
@@ -117,12 +123,16 @@ export function ContactsList({
     )
       return;
     start(async () => {
-      const res = await convertirContactsEnPartenaires(cible);
-      vider();
-      setMessage({
-        texte: `${res.convertis} contact${res.convertis > 1 ? "s" : ""} converti${res.convertis > 1 ? "s" : ""} en partenaire${res.convertis > 1 ? "s" : ""}.`,
-        ignores: res.ignores,
-      });
+      try {
+        const res = await convertirContactsEnPartenaires(cible);
+        vider();
+        setMessage({
+          texte: `${res.convertis} contact${res.convertis > 1 ? "s" : ""} converti${res.convertis > 1 ? "s" : ""} en partenaire${res.convertis > 1 ? "s" : ""}.`,
+          ignores: res.ignores,
+        });
+      } catch {
+        setMessage({ texte: ECHEC, erreur: true });
+      }
       router.refresh();
     });
   }
@@ -131,11 +141,15 @@ export function ContactsList({
     if (!window.confirm(`Supprimer définitivement ${libelle} ? Cette action est irréversible.`))
       return;
     start(async () => {
-      const res = await supprimerContacts(cible);
-      vider();
-      setMessage({
-        texte: `${res.supprimes} contact${res.supprimes > 1 ? "s" : ""} supprimé${res.supprimes > 1 ? "s" : ""}.`,
-      });
+      try {
+        const res = await supprimerContacts(cible);
+        vider();
+        setMessage({
+          texte: `${res.supprimes} contact${res.supprimes > 1 ? "s" : ""} supprimé${res.supprimes > 1 ? "s" : ""}.`,
+        });
+      } catch {
+        setMessage({ texte: ECHEC, erreur: true });
+      }
       router.refresh();
     });
   }
@@ -195,9 +209,16 @@ export function ContactsList({
       )}
 
       {message && (
-        <div className="mb-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
+        <div
+          className={cn(
+            "mb-2 rounded-lg border px-3 py-2 text-sm",
+            message.erreur ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
-            <p className="font-medium text-emerald-800">{message.texte}</p>
+            <p className={cn("font-medium", message.erreur ? "text-red-700" : "text-emerald-800")}>
+              {message.texte}
+            </p>
             <button type="button" onClick={() => setMessage(null)} aria-label="Fermer">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -314,7 +335,13 @@ export function ContactsList({
         segments={segments}
         libelle={libelle}
         onValider={async (segment) => {
-          const res = await ajouterAuSegment(cible, segment);
+          let res: Awaited<ReturnType<typeof ajouterAuSegment>>;
+          try {
+            res = await ajouterAuSegment(cible, segment);
+          } catch {
+            router.refresh();
+            return "L'ajout a échoué (le segment a peut-être été supprimé entre-temps). Réessayez.";
+          }
           if (!res.ok) return res.error;
           const nom =
             "nom" in segment ? segment.nom.trim() : segments.find((s) => s.id === segment.id)?.nom;
@@ -347,6 +374,14 @@ function SegmentDialog({
   const [nom, setNom] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [pending, start] = useTransition();
+
+  useEffect(() => {
+    if (!open) return;
+    setChoix(segments[0]?.id ?? NOUVEAU);
+    setNom("");
+    setErreur(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
